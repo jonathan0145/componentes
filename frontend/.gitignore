@@ -1,0 +1,43 @@
+# Ignorar dependencias y build
+node_modules/
+build/
+dist/
+.env
+.env.local
+.env.*.local
+coverage/
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignorar archivos temporales de VSCode
+.vscode/
+
+# Ignorar archivos de sistema
+Thumbs.db
+*.swp
+*.swo
+
+# Ignorar archivos de configuración de OS
+*.idea/
+*.iml
+
+# Ignorar archivos de cache
+.cache/
+
+# Ignorar archivos de test snapshots
+__snapshots__/
+
+# Ignorar archivos de configuración de testing
+jest.config.js
+
+# Ignorar archivos de configuración de lint
+.eslintcache
+
+# Ignorar archivos de configuración de prettier
+.prettier*
+
+# Ignorar archivos de configuración de storybook
+.storybook/
