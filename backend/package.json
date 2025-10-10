@@ -1,0 +1,42 @@
+{
+  "name": "api_inmotech_fs",
+  "version": "1.0.0",
+  "description": "API para Inmotech FS",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "set NODE_ENV=development && nodemon src/index.js",
+    "dev:cross": "cross-env NODE_ENV=development nodemon src/index.js",
+    "dev:linux": "NODE_ENV=development nodemon src/index.js"
+  },
+  "keywords": [
+    "api",
+    "inmotech",
+    "real-estate"
+  ],
+  "author": "Tu nombre",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/storage": "^7.17.1",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "firebase-admin": "^13.5.0",
+    "google-auth-library": "^10.3.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.14.1",
+    "nodemailer": "^7.0.9",
+    "sequelize": "^6.37.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "nodemon": "^2.0.22"
+  }
+}
