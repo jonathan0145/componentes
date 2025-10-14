@@ -22,15 +22,18 @@ exports.getPermissionById = async (req, res) => {
 
 exports.createPermission = async (req, res) => {
   try {
-    const { name } = req.body;
-    if (!name || typeof name !== 'string' || name.trim().length < 3) {
-      return res.status(400).json({ error: 'El nombre del permiso es obligatorio y debe tener al menos 3 caracteres' });
+    const { action, roleId, allowed } = req.body;
+    if (!action || typeof action !== 'string' || action.trim().length < 3) {
+      return res.status(400).json({ error: 'El campo action es obligatorio y debe tener al menos 3 caracteres' });
     }
-    const existe = await Permission.findOne({ where: { name } });
+    if (!roleId || typeof roleId !== 'number') {
+      return res.status(400).json({ error: 'El campo roleId es obligatorio y debe ser un número válido' });
+    }
+    const existe = await Permission.findOne({ where: { action, roleId } });
     if (existe) {
-      return res.status(409).json({ error: 'El nombre de permiso ya existe' });
+      return res.status(409).json({ error: 'El permiso ya existe para ese rol' });
     }
-    const permission = await Permission.create({ name });
+    const permission = await Permission.create({ action, roleId, allowed: allowed !== undefined ? allowed : true });
     res.status(201).json(permission);
   } catch (error) {
     res.status(500).json({ error: 'Error al crear el permiso', detalle: error.message });

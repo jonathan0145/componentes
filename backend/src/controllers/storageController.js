@@ -11,7 +11,7 @@ const storage = new Storage({
   keyFilename: path.join(__dirname, '../../google-cloud-key.json'),
   projectId: process.env.GCLOUD_PROJECT_ID
 });
-const bucket = storage.bucket(process.env.GCLOUD_BUCKET);
+const bucket = storage.bucket(process.env.GCLOUD_STORAGE_BUCKET);
 
 // Subir archivo a GCS y guardar en BD
 exports.uploadFile = async (req, res) => {

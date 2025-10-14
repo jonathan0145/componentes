@@ -17,7 +17,7 @@ exports.register = async (req, res) => {
     const user = await User.create({ email, password: hash, name, roleId });
     res.status(201).json({ mensaje: 'Usuario registrado', user });
   } catch (error) {
-    res.status(500).json({ error: 'Error en el registro' });
+    res.status(500).json({ error: 'Error en el registro', detalle: error.message });
   }
 };
 
@@ -39,6 +39,6 @@ exports.login = async (req, res) => {
     const token = jwt.sign({ id: user.id, role: user.Role ? user.Role.name : null }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.json({ mensaje: 'Login exitoso', token, user: { id: user.id, email: user.email, name: user.name, role: user.Role ? user.Role.name : null } });
   } catch (error) {
-    res.status(500).json({ error: 'Error en el login' });
+    res.status(500).json({ error: 'Error en el login', detalle: error.message });
   }
 };

@@ -44,7 +44,7 @@ app.use((err, req, res, next) => {
 });
 
 // Sincronizar modelos con la base de datos
-sequelize.sync({ alter: true })
+sequelize.sync({ alter: false })
   .then(() => {
     console.log('Modelos sincronizados con la base de datos');
   })
