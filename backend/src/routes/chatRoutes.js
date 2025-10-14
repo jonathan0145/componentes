@@ -25,10 +25,16 @@ const { body, validationResult } = require('express-validator');
  *           schema:
  *             type: object
  *             properties:
- *               userIds:
- *                 type: array
- *                 items:
- *                   type: integer
+ *               propertyId:
+ *                 type: integer
+ *               buyerId:
+ *                 type: integer
+ *               sellerId:
+ *                 type: integer
+ *               intermediaryId:
+ *                 type: integer
+ *               status:
+ *                 type: string
  *     responses:
  *       201:
  *         description: Chat creado
@@ -43,7 +49,11 @@ router.get('/', chatController.getAllChats);
 router.get('/:id', chatController.getChatById);
 router.post('/',
 	[
-		body('userIds').isArray({ min: 2 }).custom(arr => arr.every(Number.isInteger))
+		body('propertyId').isInt({ min: 1 }),
+		body('buyerId').isInt({ min: 1 }),
+		body('sellerId').isInt({ min: 1 }),
+		body('intermediaryId').optional().isInt({ min: 1 }),
+		body('status').optional().isString()
 	],
 	(req, res, next) => {
 		const errors = validationResult(req);

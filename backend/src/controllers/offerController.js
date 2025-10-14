@@ -54,14 +54,19 @@ exports.getOfferById = async (req, res) => {
 
 exports.createOffer = async (req, res) => {
   try {
-    const { propertyId, userId, amount, status } = req.body;
-    if (!propertyId || !userId || !amount) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios: propertyId, userId, amount' });
+    const { propertyId, buyerId, amount, status } = req.body;
+    if (!propertyId || !buyerId || !amount) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios: propertyId, buyerId, amount' });
     }
     if (typeof amount !== 'number' || amount <= 0) {
       return res.status(400).json({ error: 'El monto debe ser un número positivo' });
     }
-    const offer = await Offer.create({ propertyId, userId, amount, status });
+    const { User } = require('../models');
+    const buyer = await User.findByPk(buyerId);
+    if (!buyer || buyer.role !== 'buyer') {
+      return res.status(400).json({ error: 'El buyerId no corresponde a un usuario con rol buyer' });
+    }
+    const offer = await Offer.create({ propertyId, buyerId, amount, status });
     res.status(201).json(offer);
   } catch (error) {
     res.status(500).json({ error: 'Error al crear la oferta', detalle: error.message });

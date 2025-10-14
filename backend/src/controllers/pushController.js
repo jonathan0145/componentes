@@ -27,3 +27,15 @@ exports.sendPush = async (req, res) => {
     res.status(500).json({ error: 'Error al enviar la notificación push', detalle: error.message });
   }
 };
+
+// No hay problema. Para obtener un token FCM válido necesitas crear una app móvil (aunque sea de prueba) y conectarla a tu proyecto Firebase.
+
+// Pasos resumidos:
+
+// Instala Android Studio en tu PC.
+// Crea un nuevo proyecto Android (puede ser una app vacía).
+// En la consola de Firebase, agrega una app Android y descarga el archivo google-services.json.
+// Coloca ese archivo en la carpeta app de tu proyecto Android.
+// Agrega la dependencia de Firebase Messaging en tu build.gradle.
+// Usa el código para obtener el token FCM y verás el token en el log de la app.
+// Ese token lo usas en tu backend para enviar notificaciones push.

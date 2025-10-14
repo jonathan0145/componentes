@@ -22,11 +22,20 @@ exports.getChatById = async (req, res) => {
 
 exports.createChat = async (req, res) => {
   try {
-    const { userIds } = req.body;
-    if (!userIds || !Array.isArray(userIds) || userIds.length < 2) {
-      return res.status(400).json({ error: 'Faltan usuarios para el chat (mínimo 2)' });
+    const { propertyId, buyerId, sellerId, intermediaryId, status } = req.body;
+    if (!propertyId || !buyerId || !sellerId) {
+      return res.status(400).json({ error: 'propertyId, buyerId y sellerId son obligatorios' });
     }
-    const chat = await Chat.create({ userIds });
+    const { User } = require('../models');
+    const buyer = await User.findByPk(buyerId);
+    const seller = await User.findByPk(sellerId);
+    if (!buyer || buyer.role !== 'buyer') {
+      return res.status(400).json({ error: 'El buyerId no corresponde a un usuario con rol buyer' });
+    }
+    if (!seller || seller.role !== 'seller') {
+      return res.status(400).json({ error: 'El sellerId no corresponde a un usuario con rol seller' });
+    }
+    const chat = await Chat.create({ propertyId, buyerId, sellerId, intermediaryId, status });
     res.status(201).json(chat);
   } catch (error) {
     res.status(500).json({ error: 'Error al crear el chat', detalle: error.message });

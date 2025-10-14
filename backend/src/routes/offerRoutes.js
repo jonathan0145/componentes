@@ -29,7 +29,7 @@ const { body, validationResult } = require('express-validator');
  *             properties:
  *               propertyId:
  *                 type: integer
- *               userId:
+ *               buyerId:
  *                 type: integer
  *               amount:
  *                 type: number
@@ -53,7 +53,7 @@ router.post('/',
 	verifyToken,
 	[
 		body('propertyId').isInt(),
-		body('userId').isInt(),
+	body('buyerId').isInt(),
 		body('amount').isNumeric().toFloat()
 	],
 	(req, res, next) => {
