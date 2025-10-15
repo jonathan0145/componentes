@@ -39,11 +39,13 @@ const { body, validationResult } = require('express-validator');
  */
 const express = require('express');
 const messageController = require('../controllers/messageController');
+const { generalLimiter } = require('../middlewares/rateLimiters');
 const router = express.Router();
 
-router.get('/', messageController.getAllMessages);
-router.get('/:id', messageController.getMessageById);
+router.get('/', generalLimiter, messageController.getAllMessages);
+router.get('/:id', generalLimiter, messageController.getMessageById);
 router.post('/',
+	generalLimiter,
 	[
 		body('chatId').isInt(),
 		body('senderId').isInt(),

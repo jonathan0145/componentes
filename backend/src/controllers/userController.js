@@ -1,3 +1,71 @@
+// Obtener perfil del usuario autenticado
+exports.getProfile = async (req, res) => {
+  try {
+    // Aquí va la lógica real de perfil
+    res.json({
+      success: true,
+      data: { id: req.user?.id || 'demo', email: req.user?.email || 'demo@email.com' },
+      message: 'Perfil obtenido (stub)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_003',
+        message: 'Error al obtener perfil',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+// Actualizar perfil del usuario autenticado
+exports.updateProfile = async (req, res) => {
+  try {
+    // Aquí va la lógica real de actualización
+    res.json({
+      success: true,
+      data: req.body,
+      message: 'Perfil actualizado (stub)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_004',
+        message: 'Error al actualizar perfil',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+// Subir avatar del usuario autenticado
+exports.uploadAvatar = async (req, res) => {
+  try {
+    // Aquí va la lógica real de subida de avatar
+    res.json({
+      success: true,
+      data: { avatarUrl: 'https://demo/avatar.png' },
+      message: 'Avatar subido (stub)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_005',
+        message: 'Error al subir avatar',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
 const { User, Role } = require('../models');
 
 exports.getAllUsers = async (req, res) => {

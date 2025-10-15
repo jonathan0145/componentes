@@ -1,3 +1,25 @@
+// Refresh token
+exports.refresh = async (req, res) => {
+  try {
+    // Aquí va la lógica real de refresh
+    res.json({
+      success: true,
+      data: { token: 'nuevo_token', refreshToken: 'nuevo_refresh' },
+      message: 'Token renovado (stub)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'AUTH_004',
+        message: 'Error al renovar token',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
 const { User, Role } = require('../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');

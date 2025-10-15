@@ -14,7 +14,14 @@ exports.sendPush = async (req, res) => {
   try {
     const { token, title, body, data } = req.body;
     if (!token || !title || !body) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios: token, title, body' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'Faltan campos obligatorios: token, title, body'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
     const message = {
       notification: { title, body },
@@ -22,9 +29,22 @@ exports.sendPush = async (req, res) => {
       token
     };
     await admin.messaging().send(message);
-    res.json({ mensaje: 'Notificación push enviada correctamente' });
+    res.json({
+      success: true,
+      data: null,
+      message: 'Notificación push enviada correctamente',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al enviar la notificación push', detalle: error.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'PUSH_001',
+        message: 'Error al enviar la notificación push',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 

@@ -5,18 +5,18 @@
 | fileController           | ✅                |
 | userController           | ✅                |
 | propertyController       | ✅                |
-| chatController           | ❌                |
-| messageController        | ❌                |
-| emailController          | ❌                |
-| notificationController   | ❌                |
-| offerController          | ❌                |
-| permissionController     | ❌                |
-| priceHistoryController   | ❌                |
-| pushController           | ❌                |
-| roleController           | ❌                |
-| storageController        | ❌                |
-| verificationController   | ❌                |
-| appointmentController    | ❌                |
+| chatController           | ✅                |
+| messageController        | ✅                |
+| emailController          | ✅                |
+| notificationController   | ✅                |
+| offerController          | ✅                |
+| permissionController     | ✅                |
+| priceHistoryController   | ✅                |
+| pushController           | ✅                |
+| roleController           | ✅                |
+| storageController        | ✅                |
+| verificationController   | ✅                |
+| appointmentController    | ✅                |
 
 **Leyenda:**
 - ✅ = Sigue el formato unificado (success, data, message, timestamp)
