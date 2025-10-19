@@ -149,6 +149,23 @@ exports.createMessage = async (req, res) => {
       });
     }
     const message = await Message.create({ chatId, senderId, content });
+    // Emitir evento socket
+    try {
+      const { getIo } = require('../services/socketProvider');
+      const io = getIo();
+      io.to(`conversation:${chatId}`).emit('new_message', {
+        id: message.id,
+        conversationId: chatId,
+        content: message.content,
+        senderId: message.senderId,
+        type: 'text',
+        isRead: false,
+        createdAt: message.createdAt
+      });
+    } catch (e) {
+      // no bloquear si socket falla
+      console.warn('Socket emit failed:', e.message);
+    }
     res.status(201).json({
       success: true,
       data: message,

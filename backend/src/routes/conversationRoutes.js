@@ -19,14 +19,6 @@ router.post('/:id/messages/file', verifyToken, upload.single('file'), generalLim
 router.put('/:id/messages/read', verifyToken, generalLimiter, conversationController.markMessagesAsRead);
 
 // POST /conversations/:id/offers
-router.post('/:id/offers', verifyToken, generalLimiter, (req, res) => {
-  // Aquí iría la lógica real para crear una oferta en una conversación
-  res.status(201).json({
-    success: true,
-    data: null,
-    message: 'Oferta creada correctamente (stub)',
-    timestamp: new Date().toISOString()
-  });
-});
+router.post('/:id/offers', verifyToken, generalLimiter, conversationController.createOfferInConversation);
 
 module.exports = router;

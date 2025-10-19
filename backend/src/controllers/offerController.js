@@ -1,13 +1,28 @@
 // Responder a una oferta
 exports.respondOffer = async (req, res) => {
   try {
-    // Aquí va la lógica real de respuesta a la oferta
-    res.json({
-      success: true,
-      data: null,
-      message: 'Respuesta a la oferta registrada (stub)',
-      timestamp: new Date().toISOString()
-    });
+    const offerId = req.params.id;
+    const { action, response, counterOffer } = req.body;
+    const offer = await Offer.findByPk(offerId);
+    if (!offer) return res.status(404).json({ success: false, error: { code: 'OFFER_001', message: 'Oferta no encontrada' }, timestamp: new Date().toISOString() });
+    // Actualizar estado según action
+    if (action === 'accept') offer.status = 'accepted';
+    else if (action === 'reject') offer.status = 'rejected';
+    else if (action === 'counter' && counterOffer) {
+      offer.status = 'countered';
+      offer.amount = counterOffer.amount || offer.amount;
+    }
+    await offer.save();
+    // Emitir evento socket
+    try {
+      const { getIo } = require('../services/socketProvider');
+      const io = getIo();
+      // intentar notificar a la conversación asociada (si existe propertyId -> get chats)
+      io.emit('offer_response', { offerId: offer.id, status: offer.status, response });
+    } catch (e) {
+      console.warn('Socket emit offer_response failed:', e.message);
+    }
+    res.json({ success: true, data: offer, message: 'Respuesta a la oferta registrada', timestamp: new Date().toISOString() });
   } catch (error) {
     res.status(500).json({
       success: false,

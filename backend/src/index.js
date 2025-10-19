@@ -43,15 +43,37 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-// Sincronizar modelos con la base de datos
-sequelize.sync({ alter: false })
-  .then(() => {
-    console.log('Modelos sincronizados con la base de datos');
-  })
-  .catch((err) => {
-    console.error('Error al sincronizar modelos:', err);
-  });
+// Nota: sincronización se realiza dentro de startServer para controlar orden en tests
+// Inicializar servidor HTTP y Socket.io (exponer función para tests)
+const http = require('http');
 
-app.listen(PORT, () => {
-  console.log(`Servidor API escuchando en puerto ${PORT}`);
-});
+function startServer(port = PORT) {
+  return sequelize.sync({ alter: false })
+    .then(() => {
+      console.log('Modelos sincronizados con la base de datos');
+      const server = http.createServer(app);
+      const { init } = require('./services/socketProvider');
+      const setupSockets = require('./sockets');
+
+      init(server);
+      setupSockets();
+
+      server.listen(port, () => {
+        console.log(`Servidor API (HTTP+Socket.io) escuchando en puerto ${port}`);
+      });
+
+      return server;
+    })
+    .catch((err) => {
+      console.error('Error al sincronizar modelos:', err);
+      throw err;
+    });
+}
+
+// Si este archivo se ejecuta directamente, arrancar el servidor
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
+module.exports.startServer = startServer;
