@@ -15,3 +15,14 @@ exports.getIo = () => {
   if (!io) throw new Error('Socket.io no inicializado. Llama init(server) primero.');
   return io;
 };
+
+exports.close = async () => {
+  if (io) {
+    try {
+      await io.close();
+      io = null;
+    } catch (e) {
+      console.warn('Error closing socket.io:', e.message);
+    }
+  }
+};

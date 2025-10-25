@@ -3,12 +3,7 @@ const { Role } = require('../models');
 exports.getAllRoles = async (req, res) => {
   try {
     const roles = await Role.findAll();
-    res.json({
-      success: true,
-      data: roles,
-      message: 'Roles obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(roles);
   } catch (error) {
     res.status(500).json({
       success: false,

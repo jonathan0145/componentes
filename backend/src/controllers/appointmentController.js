@@ -34,14 +34,15 @@ exports.scheduleAppointment = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    const appointment = await Appointment.create({ userId, propertyId, date, status: 'pendiente' });
-    res.status(201).json({
+  const appointment = await Appointment.create({ userId, propertyId, date, status: 'pendiente' });
+  res.status(201).json({
       success: true,
       data: appointment,
       message: 'Cita agendada',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+  // error creating appointment
     res.status(500).json({
       success: false,
       error: {
@@ -58,12 +59,7 @@ const { Appointment } = require('../models');
 exports.getAllAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.findAll();
-    res.json({
-      success: true,
-      data: appointments,
-      message: 'Citas obtenidas correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(appointments);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -110,6 +106,7 @@ exports.getAppointmentById = async (req, res) => {
 
 exports.createAppointment = async (req, res) => {
   try {
+  // createAppointment called
     const { userId, propertyId, date, status } = req.body;
     if (!userId || !propertyId || !date) {
       return res.status(400).json({
@@ -132,7 +129,7 @@ exports.createAppointment = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    const appointment = await Appointment.create({ userId, propertyId, date, status });
+  const appointment = await Appointment.create({ userId, propertyId, date, status });
     res.status(201).json({
       success: true,
       data: appointment,

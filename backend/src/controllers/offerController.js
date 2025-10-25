@@ -124,12 +124,7 @@ const { Offer } = require('../models');
 exports.getAllOffers = async (req, res) => {
   try {
     const offers = await Offer.findAll();
-    res.json({
-      success: true,
-      data: offers,
-      message: 'Ofertas obtenidas correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(offers);
   } catch (error) {
     res.status(500).json({
       success: false,

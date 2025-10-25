@@ -19,12 +19,7 @@ const { Property, User, PriceHistory } = require('../models');
 exports.getAllProperties = async (req, res) => {
   try {
     const properties = await Property.findAll({ include: [{ model: User, as: 'seller' }, PriceHistory] });
-    res.json({
-      success: true,
-      data: properties,
-      message: 'Propiedades obtenidas correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(properties);
   } catch (err) {
     res.status(500).json({
       success: false,

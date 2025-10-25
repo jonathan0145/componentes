@@ -3,12 +3,7 @@ const { Chat } = require('../models');
 exports.getAllChats = async (req, res) => {
   try {
     const chats = await Chat.findAll();
-    res.json({
-      success: true,
-      data: chats,
-      message: 'Chats obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(chats);
   } catch (error) {
     res.status(500).json({
       success: false,

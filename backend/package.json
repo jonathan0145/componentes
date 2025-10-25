@@ -9,7 +9,7 @@
     "dev": "set NODE_ENV=development && nodemon src/index.js",
     "dev:cross": "cross-env NODE_ENV=development nodemon src/index.js",
     "dev:linux": "NODE_ENV=development nodemon src/index.js",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand --detectOpenHandles"
   },
   "keywords": [
     "api",
@@ -45,5 +45,8 @@
     "nodemon": "^2.0.22",
     "socket.io-client": "^4.7.5",
     "supertest": "^6.3.3"
+  },
+  "jest": {
+    "setupFiles": ["<rootDir>/tests/jest.setup.js"]
   }
 }

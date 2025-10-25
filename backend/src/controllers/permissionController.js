@@ -3,12 +3,7 @@ const { Permission } = require('../models');
 exports.getAllPermissions = async (req, res) => {
   try {
     const permissions = await Permission.findAll();
-    res.json({
-      success: true,
-      data: permissions,
-      message: 'Permisos obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(permissions);
   } catch (error) {
     res.status(500).json({
       success: false,

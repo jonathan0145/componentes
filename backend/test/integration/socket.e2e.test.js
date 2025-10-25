@@ -3,13 +3,13 @@ const ioClient = require('socket.io-client');
 const { createTestServer } = require('../../src/testServer');
 const { sequelize, Role } = require('../../src/models');
 
-let server;
+let serverObj;
 let api;
 let port = 4001;
 
 beforeAll(async () => {
-  server = await createTestServer();
-  const address = server.address();
+  serverObj = await createTestServer();
+  const address = serverObj.server.address();
   port = address.port || port;
   api = request(`http://localhost:${port}`);
   // seed roles
@@ -22,7 +22,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (server && server.close) await new Promise((res) => server.close(res));
+  if (serverObj && serverObj.close) await serverObj.close();
   await sequelize.close();
 });
 
@@ -51,6 +51,7 @@ test('socket authentication and new_message/new_offer/appointment_scheduled flow
   socket.on('new_message', () => (eventsReceived.new_message = true));
   socket.on('new_offer', () => (eventsReceived.new_offer = true));
   socket.on('appointment_scheduled', () => (eventsReceived.appointment_scheduled = true));
+  // client listeners registered above
 
   // Wait for authentication then trigger HTTP actions and wait for all events
   await new Promise((resolve, reject) => {
@@ -80,7 +81,10 @@ test('socket authentication and new_message/new_offer/appointment_scheduled flow
       }
     };
 
-    socket.once('authenticated', onAuthenticated);
+    socket.once('joined_conversation', async () => {
+      await new Promise((r) => setTimeout(r, 100));
+      onAuthenticated();
+    });
   });
 
   expect(eventsReceived.authenticated).toBe(true);

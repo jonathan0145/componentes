@@ -3,13 +3,13 @@ const ioClient = require('socket.io-client');
 const { createTestServer } = require('../../src/testServer');
 const { sequelize, Role, Property, Chat } = require('../../src/models');
 
-let server;
+let serverObj;
 let api;
 let port = 4001;
 
 beforeAll(async () => {
-  server = await createTestServer();
-  const address = server.address();
+  serverObj = await createTestServer();
+  const address = serverObj.server.address();
   port = address.port || port;
   api = request(`http://localhost:${port}`);
   // seed roles (evita constraints FK al registrar usuarios)
@@ -22,7 +22,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (server && server.close) await new Promise((res) => server.close(res));
+  if (serverObj && serverObj.close) await serverObj.close();
   await sequelize.close();
 });
 
@@ -56,6 +56,7 @@ test('socket authentication and new_message/new_offer/appointment_scheduled flow
   socket.on('new_message', () => (eventsReceived.new_message = true));
   socket.on('new_offer', () => (eventsReceived.new_offer = true));
   socket.on('appointment_scheduled', () => (eventsReceived.appointment_scheduled = true));
+  // client listeners registered above
 
   // Trigger HTTP actions after authentication and wait for events
   await new Promise((resolve, reject) => {
@@ -64,11 +65,13 @@ test('socket authentication and new_message/new_offer/appointment_scheduled flow
       reject(new Error('Timed out waiting for socket events'));
     }, 15000);
 
-    socket.once('authenticated', async () => {
+      socket.once('joined_conversation', async () => {
+        // small delay to ensure server processed the join
+        await new Promise((r) => setTimeout(r, 100));
       try {
-        await api.post(`/api/messages`).set('Authorization', `Bearer ${token}`).send({ chatId: conversationId, content: 'hola socket' });
-        await api.post(`/conversations/${conversationId}/offers`).set('Authorization', `Bearer ${token}`).send({ amount: 1000 });
-        await api.post(`/conversations/${conversationId}/appointments`).set('Authorization', `Bearer ${token}`).send({ scheduledFor: new Date().toISOString() });
+  await api.post(`/api/messages`).set('Authorization', `Bearer ${token}`).send({ chatId: conversationId, content: 'hola socket' });
+  await api.post(`/conversations/${conversationId}/offers`).set('Authorization', `Bearer ${token}`).send({ amount: 1000 });
+  await api.post(`/conversations/${conversationId}/appointments`).set('Authorization', `Bearer ${token}`).send({ scheduledFor: new Date().toISOString() });
 
         const interval = setInterval(() => {
           if (eventsReceived.authenticated && eventsReceived.new_message && eventsReceived.new_offer && eventsReceived.appointment_scheduled) {

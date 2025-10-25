@@ -3,12 +3,7 @@ const { PriceHistory } = require('../models');
 exports.getAllPriceHistories = async (req, res) => {
   try {
     const histories = await PriceHistory.findAll();
-    res.json({
-      success: true,
-      data: histories,
-      message: 'Historiales de precios obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+      res.json(histories);
   } catch (error) {
     res.status(500).json({
       success: false,

@@ -117,7 +117,7 @@ npm start
 ### Pendientes / mejoras (no implementadas completamente)
 
  - ✅ Persistencia completa de ofertas desde `createOfferInConversation` (ahora creada y persistida en el modelo `Offer`, vinculada a `Chat.propertyId`).
-- [ ] Tests de integración (HTTP + Socket.io) para validar: autenticación socket, envío/recepción de `new_message`, `new_offer`, `appointment_scheduled`.
+- ✅ Tests de integración (HTTP + Socket.io) para validar: autenticación socket, envío/recepción de `new_message`, `new_offer`, `appointment_scheduled`.
 - [ ] Reforzar validaciones/permisos en handlers y controladores (verificar que el usuario pertenece a la conversación antes de emitir o unirse).
 - [ ] Documentación adicional automatizada / fragmentos Swagger para los eventos WebSocket (opcional).
 

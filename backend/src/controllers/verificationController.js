@@ -3,13 +3,9 @@ const { Verification } = require('../models');
 exports.getAllVerifications = async (req, res) => {
   try {
     const verifications = await Verification.findAll();
-    res.json({
-      success: true,
-      data: verifications,
-      message: 'Verificaciones obtenidas correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(verifications);
   } catch (error) {
+  // Error in controller: logged in error response
     res.status(500).json({
       success: false,
       error: {

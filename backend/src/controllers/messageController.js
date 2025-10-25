@@ -2,7 +2,8 @@
 const { Chat, User } = require('../models');
 exports.sendMessage = async (req, res) => {
   try {
-    const { chatId, senderId, content } = req.body;
+  const { chatId, senderId: bodySenderId, content } = req.body;
+  const senderId = bodySenderId || req.user?.id;
     if (!chatId || !senderId || !content) {
       return res.status(400).json({
         success: false,
@@ -41,7 +42,8 @@ exports.sendMessage = async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
-    if (!chat.userIds.includes(senderId)) {
+    const participants = [chat.buyerId, chat.sellerId, chat.intermediaryId].filter(Boolean);
+    if (!participants.includes(senderId)) {
       return res.status(403).json({
         success: false,
         error: {
@@ -75,12 +77,7 @@ const { Message } = require('../models');
 exports.getAllMessages = async (req, res) => {
   try {
     const messages = await Message.findAll();
-    res.json({
-      success: true,
-      data: messages,
-      message: 'Mensajes obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(messages);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -127,8 +124,9 @@ exports.getMessageById = async (req, res) => {
 
 exports.createMessage = async (req, res) => {
   try {
-    const { chatId, senderId, content } = req.body;
-    if (!chatId || !senderId || !content) {
+  const { chatId, senderId: bodySenderId, content } = req.body;
+  const senderId = bodySenderId || req.user.id; // Removed optional chaining for compatibility
+  if (!chatId || !senderId || !content) {
       return res.status(400).json({
         success: false,
         error: {
@@ -148,12 +146,12 @@ exports.createMessage = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    const message = await Message.create({ chatId, senderId, content });
+  const message = await Message.create({ chatId, senderId, content });
     // Emitir evento socket
     try {
       const { getIo } = require('../services/socketProvider');
       const io = getIo();
-      io.to(`conversation:${chatId}`).emit('new_message', {
+  io.to(`conversation:${chatId}`).emit('new_message', {
         id: message.id,
         conversationId: chatId,
         content: message.content,

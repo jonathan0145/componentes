@@ -44,11 +44,14 @@ const router = express.Router();
 
 router.get('/', generalLimiter, messageController.getAllMessages);
 router.get('/:id', generalLimiter, messageController.getMessageById);
+const { verifyToken } = require('../middlewares/authMiddleware');
+
 router.post('/',
+	verifyToken,
 	generalLimiter,
 	[
 		body('chatId').isInt(),
-		body('senderId').isInt(),
+		body('senderId').optional().isInt(),
 		body('content').isString().notEmpty().trim().escape()
 	],
 	(req, res, next) => {

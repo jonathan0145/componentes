@@ -71,12 +71,7 @@ const { User, Role } = require('../models');
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({ include: Role });
-    res.json({
-      success: true,
-      data: users,
-      message: 'Usuarios obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(users);
   } catch (err) {
     res.status(500).json({
       success: false,

@@ -14,11 +14,12 @@ module.exports = function setupSockets() {
         const token = data?.token;
         if (!token) return socket.emit('authentication_error', { code: 'AUTH_001', message: 'Token requerido' });
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // token decoded
         socket.auth = true;
         socket.user = decoded;
         socket.join(`user:${decoded.id}`);
-        socket.emit('authenticated', { userId: decoded.id, role: decoded.role });
-        io.emit('user_online', { userId: decoded.id });
+  socket.emit('authenticated', { userId: decoded.id, role: decoded.role });
+  io.emit('user_online', { userId: decoded.id });
       } catch (err) {
         socket.emit('authentication_error', { code: 'AUTH_001', message: 'Token inválido' });
         // optionally disconnect

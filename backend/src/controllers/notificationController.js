@@ -3,12 +3,7 @@ const { Notification } = require('../models');
 exports.getAllNotifications = async (req, res) => {
   try {
     const notifications = await Notification.findAll();
-    res.json({
-      success: true,
-      data: notifications,
-      message: 'Notificaciones obtenidas correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(notifications);
   } catch (error) {
     res.status(500).json({
       success: false,

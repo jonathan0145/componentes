@@ -3,12 +3,7 @@ const { File } = require('../models');
 exports.getAllFiles = async (req, res) => {
   try {
     const files = await File.findAll();
-    res.json({
-      success: true,
-      data: files,
-      message: 'Archivos obtenidos correctamente',
-      timestamp: new Date().toISOString()
-    });
+    res.json(files);
   } catch (error) {
     res.status(500).json({
       success: false,
