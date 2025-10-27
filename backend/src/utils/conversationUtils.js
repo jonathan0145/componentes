@@ -1,6 +1,6 @@
 // utils/conversationUtils.js
 // Función para validar si un usuario pertenece a una conversación
-const { Conversation, Chat } = require('../models');
+const { Chat } = require('../models');
 
 /**
  * Verifica si el usuario pertenece a la conversación indicada
@@ -9,30 +9,44 @@ const { Conversation, Chat } = require('../models');
  * @returns {Promise<boolean>}
  */
 async function userBelongsToConversation(userId, conversationId) {
-  // Buscar la conversación por ID
-  const conversation = await Conversation.findByPk(conversationId);
-  if (!conversation) return false;
+  // Buscar la conversación por ID usando Chat
+  const chat = await Chat.findByPk(conversationId);
+  if (!chat) return false;
 
   // Si la conversación tiene participantes explícitos
-  if (conversation.participants && Array.isArray(conversation.participants)) {
-    return conversation.participants.includes(userId);
+  if (chat.participants && Array.isArray(chat.participants)) {
+    // Convertir ids a número para comparación estricta
+    return chat.participants.map(Number).includes(Number(userId));
   }
 
-  // Si se usa modelo Chat, buscar en Chat
-  const chat = await Chat.findByPk(conversationId);
-  if (chat && chat.participants && Array.isArray(chat.participants)) {
-    return chat.participants.includes(userId);
-  }
-
-  // Si no hay campo participants, intentar con buyerId/sellerId
-  if (conversation.buyerId && conversation.sellerId) {
+  // Si no hay campo participants, intentar con buyerId/sellerId/intermediaryId
+  if (chat.buyerId && chat.sellerId) {
     return (
-      conversation.buyerId === userId || conversation.sellerId === userId
-    );
+      Number(chat.buyerId) === Number(userId) ||
+      Number(chat.sellerId) === Number(userId) ||
+      (chat.intermediaryId && Number(chat.intermediaryId) === Number(userId))
+    ) ? true : false;
   }
 
   // Si no se puede determinar, denegar
   return false;
 }
 
-module.exports = { userBelongsToConversation };
+/**
+ * Crea una nueva conversación
+ * @param {Object} property
+ * @param {Object} registerRes
+ * @returns {Promise<Object>}
+ */
+async function createConversation(property, registerRes) {
+  // Crear una nueva conversación en la base de datos
+  const chat = await Chat.create({
+    propertyId: property ? property.id : null,
+    buyerId: registerRes.body.user.id, // o el id del usuario creado
+    sellerId: registerRes.body.user.id // o el id de otro usuario si lo deseas
+  });
+
+  return chat;
+}
+
+module.exports = { userBelongsToConversation, createConversation };

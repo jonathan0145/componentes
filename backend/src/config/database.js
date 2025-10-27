@@ -1,9 +1,17 @@
 const { Sequelize } = require('sequelize');
 
 let sequelize;
-if (process.env.NODE_ENV === 'test' && process.env.USE_TEST_MYSQL !== 'true') {
-  // Por defecto en tests usamos sqlite in-memory para ser rápidos y aislados.
-  // Si quieres usar MySQL para tests, exporta USE_TEST_MYSQL=true (ver instrucciones en docs).
+if (
+  (process.env.NODE_ENV === 'test' && process.env.USE_TEST_MYSQL !== 'true' && process.env.FORCE_MEMORY_DB !== 'true')
+) {
+  // Usar SQLite en disco para tests (test.sqlite) para depuración y persistencia temporal
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: 'test.sqlite',
+  logging: false
+  });
+} else if (process.env.FORCE_MEMORY_DB === 'true') {
+  // Forzar SQLite en memoria para tests individuales
   sequelize = new Sequelize('sqlite::memory:', { logging: false });
 } else {
   // Usar MySQL (producción/desarrollo o tests con USE_TEST_MYSQL=true)

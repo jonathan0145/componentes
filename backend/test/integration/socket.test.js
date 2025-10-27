@@ -30,14 +30,37 @@ test('socket authentication and new_message/new_offer/appointment_scheduled flow
   // register and login
   const registerRes = await api.post('/api/auth/register').send({ name: 'Test User', email: 'test@example.com', password: 'password' });
   expect([200, 201]).toContain(registerRes.status);
+  console.log('[TEST] registerRes.body:', registerRes.body);
+
   const loginRes = await api.post('/api/auth/login').send({ email: 'test@example.com', password: 'password' });
   expect(loginRes.status).toBe(200);
   const token = loginRes.body.token;
+  console.log('[TEST] loginRes.body:', loginRes.body);
 
-  // create a Property and Chat (avoid hard-coded ids)
-  const property = await Property.create({ title: 'Test Property' }).catch(() => null);
-  const chat = await Chat.create({ propertyId: property ? property.id : null }).catch(() => null);
+  // Buscar el usuario por email para asegurar el id correcto
+  const user = await require('../../src/models').User.findOne({ where: { email: 'test@example.com' } });
+  const userId = user ? user.id : 1;
+  console.log('[TEST] userId usado en propiedad/chat:', userId);
+
+  const property = await Property.create({
+    title: 'Test Property',
+    price: 100000,
+    sellerId: userId
+  }).catch((err) => { console.log('[TEST] Error al crear propiedad:', err && err.message, err && err.errors); return null; });
+
+  let chat = null;
+  try {
+    chat = await Chat.create({
+      propertyId: property ? property.id : null,
+      buyerId: userId,
+      sellerId: userId,
+      participants: [userId]
+    });
+  } catch (err) {
+    console.log('[TEST] Error al crear chat:', err && err.message, err && err.errors);
+  }
   const conversationId = chat ? chat.id : 1;
+  console.log('[TEST] chat creado:', chat && chat.toJSON ? chat.toJSON() : chat);
 
   // connect socket client
   const socket = ioClient.connect(`http://localhost:${port}`, {
@@ -53,9 +76,18 @@ test('socket authentication and new_message/new_offer/appointment_scheduled flow
     eventsReceived.authenticated = true;
     socket.emit('join_conversation', { conversationId });
   });
-  socket.on('new_message', () => (eventsReceived.new_message = true));
-  socket.on('new_offer', () => (eventsReceived.new_offer = true));
-  socket.on('appointment_scheduled', () => (eventsReceived.appointment_scheduled = true));
+  socket.on('new_message', (msg) => {
+    console.log('[SOCKET][TEST] new_message recibido:', msg);
+    eventsReceived.new_message = true;
+  });
+  socket.on('new_offer', (offer) => {
+    console.log('[SOCKET][TEST] new_offer recibido:', offer);
+    eventsReceived.new_offer = true;
+  });
+  socket.on('appointment_scheduled', (appt) => {
+    console.log('[SOCKET][TEST] appointment_scheduled recibido:', appt);
+    eventsReceived.appointment_scheduled = true;
+  });
   // client listeners registered above
 
   // Trigger HTTP actions after authentication and wait for events
