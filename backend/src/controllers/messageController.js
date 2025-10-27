@@ -42,8 +42,10 @@ exports.sendMessage = async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
-    const participants = [chat.buyerId, chat.sellerId, chat.intermediaryId].filter(Boolean);
-    if (!participants.includes(senderId)) {
+    // Validar pertenencia usando función utilitaria
+    const { userBelongsToConversation } = require('../utils/conversationUtils');
+    const allowed = await userBelongsToConversation(senderId, chatId);
+    if (!allowed) {
       return res.status(403).json({
         success: false,
         error: {

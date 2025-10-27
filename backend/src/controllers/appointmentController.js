@@ -1,3 +1,4 @@
+const { userBelongsToConversation } = require('../utils/conversationUtils');
 // Agendar cita con validación de disponibilidad
 exports.scheduleAppointment = async (req, res) => {
   try {
@@ -22,6 +23,18 @@ exports.scheduleAppointment = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
+    // Validar que el usuario pertenece a la conversación (propertyId como conversationId)
+    const allowed = await userBelongsToConversation(userId, propertyId);
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'CONV_403',
+          message: 'El usuario no pertenece a la conversación o propiedad indicada'
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
     // Validar disponibilidad: no debe haber otra cita para la propiedad en esa fecha
     const existe = await Appointment.findOne({ where: { propertyId, date } });
     if (existe) {
@@ -34,8 +47,8 @@ exports.scheduleAppointment = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-  const appointment = await Appointment.create({ userId, propertyId, date, status: 'pendiente' });
-  res.status(201).json({
+    const appointment = await Appointment.create({ userId, propertyId, date, status: 'pendiente' });
+    res.status(201).json({
       success: true,
       data: appointment,
       message: 'Cita agendada',

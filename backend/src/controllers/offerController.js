@@ -1,3 +1,4 @@
+const { userBelongsToConversation } = require('../utils/conversationUtils');
 // Responder a una oferta
 exports.respondOffer = async (req, res) => {
   try {
@@ -173,13 +174,13 @@ exports.getOfferById = async (req, res) => {
 
 exports.createOffer = async (req, res) => {
   try {
-    const { propertyId, buyerId, amount, status } = req.body;
-    if (!propertyId || !buyerId || !amount) {
+    const { propertyId, buyerId, amount, status, conversationId } = req.body;
+    if (!propertyId || !buyerId || !amount || !conversationId) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_001',
-          message: 'Faltan campos obligatorios: propertyId, buyerId, amount'
+          message: 'Faltan campos obligatorios: propertyId, buyerId, amount, conversationId'
         },
         timestamp: new Date().toISOString()
       });
@@ -202,6 +203,18 @@ exports.createOffer = async (req, res) => {
         error: {
           code: 'VALIDATION_001',
           message: 'El buyerId no corresponde a un usuario con rol buyer'
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+    // Validar pertenencia a la conversación
+    const allowed = await userBelongsToConversation(buyerId, conversationId);
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'CONV_403',
+          message: 'El usuario no pertenece a la conversación indicada'
         },
         timestamp: new Date().toISOString()
       });
