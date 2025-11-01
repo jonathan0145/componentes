@@ -19,26 +19,29 @@ app.get('/', (req, res) => {
 const { swaggerUi, specs } = require('./config/swagger');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
-// Importar y usar rutas de módulos (auth, properties, chat, etc.)
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/properties', require('./routes/propertyRoutes'));
-app.use('/api/offers', require('./routes/offerRoutes'));
-app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/appointments', require('./routes/appointmentRoutes'));
-app.use('/api/chats', require('./routes/chatRoutes'));
-app.use('/conversations', require('./routes/conversationRoutes'));
-app.use('/api/pricehistories', require('./routes/priceHistoryRoutes'));
+
+// Agrupar todas las rutas bajo /api/v1
+const apiV1Router = express.Router();
+apiV1Router.use('/users', require('./routes/userRoutes'));
+apiV1Router.use('/properties', require('./routes/propertyRoutes'));
+apiV1Router.use('/offers', require('./routes/offerRoutes'));
+apiV1Router.use('/messages', require('./routes/messageRoutes'));
+apiV1Router.use('/notifications', require('./routes/notificationRoutes'));
+apiV1Router.use('/appointments', require('./routes/appointmentRoutes'));
+apiV1Router.use('/chats', require('./routes/chatRoutes'));
+apiV1Router.use('/conversations', require('./routes/conversationRoutes'));
+apiV1Router.use('/pricehistories', require('./routes/priceHistoryRoutes'));
 // alias por compatibilidad con tests
-app.use('/api/price-history', require('./routes/priceHistoryRoutes'));
-app.use('/api/verifications', require('./routes/verificationRoutes'));
-app.use('/api/roles', require('./routes/roleRoutes'));
-app.use('/api/permissions', require('./routes/permissionRoutes'));
-app.use('/api/files', require('./routes/fileRoutes'));
-app.use('/api/email', require('./routes/emailRoutes'));
-app.use('/api/push', require('./routes/pushRoutes'));
-app.use('/api/storage', require('./routes/storageRoutes'));
-app.use('/api/auth', require('./routes/authRoutes'));
+apiV1Router.use('/price-history', require('./routes/priceHistoryRoutes'));
+apiV1Router.use('/verifications', require('./routes/verificationRoutes'));
+apiV1Router.use('/roles', require('./routes/roleRoutes'));
+apiV1Router.use('/permissions', require('./routes/permissionRoutes'));
+apiV1Router.use('/files', require('./routes/fileRoutes'));
+apiV1Router.use('/email', require('./routes/emailRoutes'));
+apiV1Router.use('/push', require('./routes/pushRoutes'));
+apiV1Router.use('/storage', require('./routes/storageRoutes'));
+apiV1Router.use('/auth', require('./routes/authRoutes'));
+app.use('/api/v1', apiV1Router);
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
