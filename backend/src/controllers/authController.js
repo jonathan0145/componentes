@@ -27,16 +27,28 @@ const jwt = require('jsonwebtoken');
 // Registro de usuario
 exports.register = async (req, res) => {
   try {
-    const { email, password, name, roleId } = req.body;
-    if (!email || !password || !name) {
+    console.log('BODY REGISTRO:', req.body);
+    const { email, password, name, role } = req.body;
+    if (!email || !password || !name || !role) {
       return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
     const existe = await User.findOne({ where: { email } });
     if (existe) {
       return res.status(409).json({ error: 'El email ya está registrado' });
     }
+    // Buscar el rol por nombre (case-insensitive)
+    const roleObj = await Role.findOne({ where: { name: role.toLowerCase() } });
+    if (!roleObj) {
+      return res.status(400).json({ error: 'Rol no válido' });
+    }
     const hash = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, password: hash, name, roleId });
+    const user = await User.create({
+      email,
+      password: hash,
+      name,
+      role: roleObj.name, // Guardar el nombre del rol
+      roleId: roleObj.id  // Relación con la tabla Role
+    });
     res.status(201).json({ mensaje: 'Usuario registrado', user });
   } catch (error) {
     res.status(500).json({ error: 'Error en el registro', detalle: error.message });

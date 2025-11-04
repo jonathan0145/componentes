@@ -4,11 +4,29 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const { sequelize } = require('./models');
+const { Role } = require('./models');
 
 // Middlewares
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Crear roles básicos si no existen
+async function ensureDefaultRoles() {
+  const defaultRoles = [
+    { name: 'buyer', description: 'Comprador' },
+    { name: 'seller', description: 'Vendedor' },
+    { name: 'agent', description: 'Agente' }
+  ];
+  for (const role of defaultRoles) {
+    await Role.findOrCreate({ where: { name: role.name }, defaults: role });
+  }
+}
+
+ensureDefaultRoles().then(() => {
+  console.log('Roles básicos verificados/creados');
+});
 
 // Rutas base (ejemplo, se irán agregando)
 app.get('/', (req, res) => {
