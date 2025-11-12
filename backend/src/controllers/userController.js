@@ -1,11 +1,37 @@
+const { User, Profile, Role } = require('../models');
+
 // Obtener perfil del usuario autenticado
 exports.getProfile = async (req, res) => {
   try {
-    // Aquí va la lógica real de perfil
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: { message: 'No autenticado' } });
+
+    const user = await User.findByPk(userId, {
+      include: [
+        { model: Profile, as: 'profile' },
+        { model: Role }
+      ]
+    });
+    if (!user) return res.status(404).json({ success: false, error: { message: 'Usuario no encontrado' } });
+
+    const { password, ...userData } = user.toJSON();
+    const profile = userData.profile || {};
     res.json({
       success: true,
-      data: { id: req.user?.id || 'demo', email: req.user?.email || 'demo@email.com' },
-      message: 'Perfil obtenido (stub)',
+      data: {
+        id: userData.id,
+        email: userData.email,
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        role: userData.role,
+        phone: profile.phone || '',
+        avatarUrl: profile.avatar || '',
+        isVerified: userData.verified || false,
+        preferences: profile.preferences || {},
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt
+      },
+      message: 'Perfil obtenido correctamente',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -18,26 +44,84 @@ exports.getProfile = async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
+
   }
-};
+}
 
 // Actualizar perfil del usuario autenticado
 exports.updateProfile = async (req, res) => {
   try {
-    // Aquí va la lógica real de actualización
+    const userId = req.user?.id;
+    if (!userId) {
+      console.error('No autenticado');
+      return res.status(401).json({ success: false, error: { message: 'No autenticado' } });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      console.error('Usuario no encontrado');
+      return res.status(404).json({ success: false, error: { message: 'Usuario no encontrado' } });
+    }
+
+    // Actualizar datos de perfil
+    const { firstName, lastName, phone, preferences } = req.body;
+    let profile = await Profile.findOne({ where: { userId } });
+    if (!profile) {
+      profile = await Profile.create({
+        userId,
+        firstName: firstName || '',
+        lastName: lastName || ''
+      });
+    }
+    if (firstName !== undefined) profile.firstName = firstName;
+    if (lastName !== undefined) profile.lastName = lastName;
+    if (phone !== undefined) profile.phone = phone;
+    if (preferences !== undefined) profile.preferences = preferences;
+    await profile.save();
+
+    // Si se quiere actualizar la contraseña
+    if (req.body.password) {
+      const bcrypt = require('bcrypt');
+      user.password = await bcrypt.hash(req.body.password, 10);
+      await user.save();
+    }
+
+    // Obtener datos completos del usuario y perfil para respuesta consistente
+    const userWithProfile = await User.findByPk(userId, {
+      include: [
+        { model: Profile, as: 'profile' },
+        { model: Role }
+      ]
+    });
+    const { password, ...userData } = userWithProfile.toJSON();
+    const profileData = userData.profile || {};
     res.json({
       success: true,
-      data: req.body,
-      message: 'Perfil actualizado (stub)',
+      data: {
+        id: userData.id,
+        email: userData.email,
+        firstName: profileData.firstName || '',
+        lastName: profileData.lastName || '',
+        role: userData.role,
+        phone: profileData.phone || '',
+        avatarUrl: profileData.avatar || '',
+        isVerified: userData.verified || false,
+        preferences: profileData.preferences || {},
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt
+      },
+      message: 'Perfil actualizado correctamente',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    console.error('Error en updateProfile:', error);
     res.status(500).json({
       success: false,
       error: {
         code: 'USER_004',
         message: 'Error al actualizar perfil',
-        details: error.message
+        details: error.message,
+        stack: error.stack
       },
       timestamp: new Date().toISOString()
     });
@@ -47,13 +131,22 @@ exports.updateProfile = async (req, res) => {
 // Subir avatar del usuario autenticado
 exports.uploadAvatar = async (req, res) => {
   try {
-    // Aquí va la lógica real de subida de avatar
-    res.json({
-      success: true,
-      data: { avatarUrl: 'https://demo/avatar.png' },
-      message: 'Avatar subido (stub)',
-      timestamp: new Date().toISOString()
-    });
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: { message: 'No autenticado' } });
+
+    let profile = await Profile.findOne({ where: { userId } });
+    if (!profile) {
+      profile = await Profile.create({ userId });
+    }
+
+    if (!req.file) return res.status(400).json({ success: false, error: { message: 'No se subió ningún archivo' } });
+
+    // Guardar ruta relativa del avatar
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    profile.avatar = avatarUrl;
+    await profile.save();
+
+    res.json({ success: true, data: { avatarUrl }, message: 'Avatar subido correctamente', timestamp: new Date().toISOString() });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -66,7 +159,6 @@ exports.uploadAvatar = async (req, res) => {
     });
   }
 };
-const { User, Role } = require('../models');
 
 exports.getAllUsers = async (req, res) => {
   try {

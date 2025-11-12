@@ -12,6 +12,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Servir archivos estáticos de uploads (avatars, etc.)
+app.use('/uploads', express.static('uploads'));
+
 // Crear roles básicos si no existen
 async function ensureDefaultRoles() {
   const defaultRoles = [

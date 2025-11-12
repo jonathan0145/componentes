@@ -1,4 +1,5 @@
 import { FaPhone, FaMapMarkerAlt, FaEdit, FaHeart, FaBriefcase } from 'react-icons/fa';
+
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Badge, Modal, Alert, Tab, Tabs } from 'react-bootstrap';
 import { useSelector, useDispatch } from 'react-redux';
@@ -10,34 +11,13 @@ import { toast } from 'react-toastify';
 import VerificationBadges from '@components/verification/VerificationBadges';
 
 const ProfilePage = () => {
-  // Sincronización y actualización de indicadores/notificaciones
-  useEffect(() => {
-    // 1. Sincronizar datos del usuario (simulación: recargar datos si cambia el id)
-    // Aquí podrías hacer un dispatch para refrescar datos desde el backend si lo necesitas
-    // dispatch(fetchCurrentUser(currentUser.id));
-
-    // 2. Actualizar indicadores visuales (ejemplo: badge de verificación)
-    // Si el usuario se verifica, mostrar toast
-    if (currentUser.isVerified) {
-      toast.info('¡Tu cuenta está verificada!');
-    }
-
-    // 3. Notificaciones automáticas (simulación)
-    // Si hay nuevas notificaciones, mostrar toast
-    // if (currentUser.notifications && currentUser.notifications.length > 0) {
-    //   toast.info(`Tienes ${currentUser.notifications.length} nuevas notificaciones.`);
-    // }
-
-    // 4. Validaciones y controles (ejemplo: límite de propiedades guardadas)
-    if (savedProperties.length > 100) {
-      toast.warn('Has alcanzado el límite de propiedades guardadas.');
-    }
-    // 5. Auditoría (simulación: log de acceso)
-    // console.log('Acceso a perfil de usuario:', currentUser.id);
-  }, [currentUser, savedProperties]);
-  const dispatch = useDispatch();
+  // Obtener currentUser ANTES de cualquier uso
   const currentUser = useSelector(selectCurrentUser);
+  const dispatch = useDispatch();
   const verifications = useSelector(selectVerifications);
+
+
+  // Estados antes del useEffect
   const [loading, setLoading] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
@@ -65,6 +45,65 @@ const ProfilePage = () => {
     }
   });
 
+  // Sincronizar formData cuando currentUser cambie (tras editar perfil)
+  useEffect(() => {
+    setFormData({
+      firstName: currentUser?.firstName || '',
+      lastName: currentUser?.lastName || '',
+      email: currentUser?.email || '',
+      phone: currentUser?.phone || '',
+      avatar: currentUser?.avatar || '',
+      preferences: {
+        location: currentUser?.preferences?.location || '',
+        priceRange: {
+          min: currentUser?.preferences?.priceRange?.min || '',
+          max: currentUser?.preferences?.priceRange?.max || ''
+        },
+        propertyType: currentUser?.preferences?.propertyType || '',
+        bedrooms: currentUser?.preferences?.bedrooms || '',
+        bathrooms: currentUser?.preferences?.bathrooms || ''
+      },
+      professional: currentUser?.professional || {
+        licenseNumber: '',
+        agency: '',
+        experience: '',
+        specialization: '',
+        coverageArea: ''
+      }
+    });
+  }, [currentUser]);
+
+  // Proteger el renderizado si currentUser no está listo
+  if (!currentUser) {
+    return <div style={{textAlign: 'center', marginTop: '2rem'}}>Cargando perfil...</div>;
+  }
+
+  // Sincronización y actualización de indicadores/notificaciones
+  useEffect(() => {
+    // 1. Sincronizar datos del usuario (simulación: recargar datos si cambia el id)
+    // Aquí podrías hacer un dispatch para refrescar datos desde el backend si lo necesitas
+    // dispatch(fetchCurrentUser(currentUser.id));
+
+    // 2. Actualizar indicadores visuales (ejemplo: badge de verificación)
+    // Si el usuario se verifica, mostrar toast
+    if (currentUser.isVerified) {
+      toast.info('¡Tu cuenta está verificada!');
+    }
+
+    // 3. Notificaciones automáticas (simulación)
+    // Si hay nuevas notificaciones, mostrar toast
+    // if (currentUser.notifications && currentUser.notifications.length > 0) {
+    //   toast.info(`Tienes ${currentUser.notifications.length} nuevas notificaciones.`);
+    // }
+
+    // 4. Validaciones y controles (ejemplo: límite de propiedades guardadas)
+    if (savedProperties.length > 100) {
+      toast.warn('Has alcanzado el límite de propiedades guardadas.');
+    }
+    // 5. Auditoría (simulación: log de acceso)
+    // console.log('Acceso a perfil de usuario:', currentUser.id);
+  }, [currentUser, savedProperties]);
+
   // Estados para feedback de notificaciones push/email
   const [pushLoading, setPushLoading] = useState(false);
   const [pushError, setPushError] = useState(null);
@@ -80,7 +119,6 @@ const ProfilePage = () => {
     setLoading(true);
     try {
       await dispatch(updateProfile(formData));
-      toast.success('¡Perfil actualizado correctamente!');
       setShowEditModal(false);
     } catch (err) {
       toast.error('Error al actualizar el perfil.');
@@ -120,7 +158,7 @@ const ProfilePage = () => {
       preferences: {
         ...prev.preferences,
         priceRange: {
-          ...prev.preferences.priceRange,
+          ...(prev.preferences?.priceRange || { min: '', max: '' }),
           [name]: value
         }
       }
@@ -139,6 +177,7 @@ const ProfilePage = () => {
 
   // Utilidad para formatear precio
   const formatPrice = (price) => {
+    if (price === undefined || price === null || price === '') return '';
     return `$${Number(price).toLocaleString('es-CO')}`;
   };
 
@@ -174,88 +213,86 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              <div className="mt-3">
-                <Tabs
+              {/* Sección de Tabs de perfil */}
+              <Tabs
                   activeKey={activeTab}
                   onSelect={(tab) => setActiveTab(tab)}
                   className="mb-4"
                 >
-                  <>
-                    <Tab eventKey="personal" title="Información Personal">
+                  <Tab eventKey="personal" title="Información Personal">
+                    <Card>
+                      <Card.Header>
+                      </Card.Header>
+                      <Card.Body>
+                        <Row>
+                          <Col md={6}>
+                            <p><strong>Nombre:</strong> {currentUser.firstName}</p>
+                            <p><strong>Apellido:</strong> {currentUser.lastName}</p>
+                            <p><strong>Email:</strong> {currentUser.email}</p>
+                          </Col>
+                          <Col md={6}>
+                            <p><strong>Teléfono:</strong> {currentUser.phone || 'No especificado'}</p>
+                            <p><strong>Rol:</strong> {getRoleLabel(currentUser.role)}</p>
+                            <p><strong>Estado:</strong> 
+                              <Badge bg="success" className="ms-2">Activo</Badge>
+                            </p>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+                  </Tab>
+
+                  {currentUser.role === 'buyer' && (
+                    <Tab eventKey="preferences" title="Preferencias de Búsqueda">
                       <Card>
                         <Card.Header>
-                          <h6 className="mb-0">Datos Personales</h6>
+                          <h6 className="mb-0">
+                            <FaHeart className="me-2" />
+                            Mis Preferencias
+                          </h6>
                         </Card.Header>
                         <Card.Body>
-                          <Row>
-                            <Col md={6}>
-                              <p><strong>Nombre:</strong> {currentUser.firstName}</p>
-                              <p><strong>Apellido:</strong> {currentUser.lastName}</p>
-                              <p><strong>Email:</strong> {currentUser.email}</p>
-                            </Col>
-                            <Col md={6}>
-                              <p><strong>Teléfono:</strong> {currentUser.phone || 'No especificado'}</p>
-                              <p><strong>Rol:</strong> {getRoleLabel(currentUser.role)}</p>
-                              <p><strong>Estado:</strong> 
-                                <Badge bg="success" className="ms-2">Activo</Badge>
-                              </p>
-                            </Col>
-                          </Row>
+                          {currentUser.preferences ? (
+                            <Row>
+                              <Col md={6}>
+                                <p><strong>Ubicación preferida:</strong> {currentUser.preferences.location || 'No especificada'}</p>
+                                <p><strong>Tipo de propiedad:</strong> {currentUser.preferences.propertyType || 'Cualquiera'}</p>
+                              </Col>
+                              <Col md={6}>
+                                <p><strong>Habitaciones:</strong> {currentUser.preferences.bedrooms || 'Cualquiera'}</p>
+                                <p><strong>Baños:</strong> {currentUser.preferences.bathrooms || 'Cualquiera'}</p>
+                              </Col>
+                              {currentUser.preferences.priceRange && (
+                                <Col md={12}>
+                                  <p><strong>Rango de precio:</strong> 
+                                    {currentUser.preferences.priceRange.min && formatPrice(currentUser.preferences.priceRange.min)} 
+                                    {currentUser.preferences.priceRange.min && currentUser.preferences.priceRange.max && ' - '}
+                                    {currentUser.preferences.priceRange.max && formatPrice(currentUser.preferences.priceRange.max)}
+                                    {!currentUser.preferences.priceRange.min && !currentUser.preferences.priceRange.max && 'No especificado'}
+                                  </p>
+                                </Col>
+                              )}
+                            </Row>
+                          ) : (
+                            <p className="text-muted">No has configurado tus preferencias de búsqueda.</p>
+                          )}
                         </Card.Body>
                       </Card>
                     </Tab>
+                  )}
 
-                    {currentUser.role === 'buyer' && (
-                      <Tab eventKey="preferences" title="Preferencias de Búsqueda">
-                        <Card>
-                          <Card.Header>
-                            <h6 className="mb-0">
-                              <FaHeart className="me-2" />
-                              Mis Preferencias
-                            </h6>
-                          </Card.Header>
-                          <Card.Body>
-                            {currentUser.preferences ? (
-                              <Row>
-                                <Col md={6}>
-                                  <p><strong>Ubicación preferida:</strong> {currentUser.preferences.location || 'No especificada'}</p>
-                                  <p><strong>Tipo de propiedad:</strong> {currentUser.preferences.propertyType || 'Cualquiera'}</p>
-                                </Col>
-                                <Col md={6}>
-                                  <p><strong>Habitaciones:</strong> {currentUser.preferences.bedrooms || 'Cualquiera'}</p>
-                                  <p><strong>Baños:</strong> {currentUser.preferences.bathrooms || 'Cualquiera'}</p>
-                                </Col>
-                                {currentUser.preferences.priceRange && (
-                                  <Col md={12}>
-                                    <p><strong>Rango de precio:</strong> 
-                                      {currentUser.preferences.priceRange.min && formatPrice(currentUser.preferences.priceRange.min)} 
-                                      {currentUser.preferences.priceRange.min && currentUser.preferences.priceRange.max && ' - '}
-                                      {currentUser.preferences.priceRange.max && formatPrice(currentUser.preferences.priceRange.max)}
-                                      {!currentUser.preferences.priceRange.min && !currentUser.preferences.priceRange.max && 'No especificado'}
-                                    </p>
-                                  </Col>
-                                )}
-                              </Row>
-                            ) : (
-                              <p className="text-muted">No has configurado tus preferencias de búsqueda.</p>
-                            )}
-                          </Card.Body>
-                        </Card>
-                      </Tab>
-                    )}
+                  {currentUser.role === 'agent' && (
+                    <Tab eventKey="analytics" title="Analytics Profesional">
+                      <AgentAnalyticsDashboard />
+                    </Tab>
+                  )}
 
-                    {currentUser.role === 'agent' && (
-                      <Tab eventKey="analytics" title="Analytics Profesional">
-                        <AgentAnalyticsDashboard />
-                      </Tab>
-                    )}
-
-                    <Tab eventKey="advanced" title="Configuración Avanzada">
-                      <Card>
-                        <Card.Header>
-                          <h6 className="mb-0">Configuración Avanzada</h6>
-                        </Card.Header>
-                        <Card.Body>
+                  <Tab eventKey="advanced" title="Configuración Avanzada">
+                    <Card>
+                      <Card.Header>
+                        <h6 className="mb-0">Configuración Avanzada</h6>
+                      </Card.Header>
+                      <Card.Body>
                           <Form>
                             {/* Privacidad */}
                             <h6 className="mt-2">Privacidad</h6>
@@ -344,9 +381,7 @@ const ProfilePage = () => {
                         </Card.Body>
                       </Card>
                     </Tab>
-                  </>
                 </Tabs>
-              </div>
 
               <Button
                 variant="primary"
@@ -564,10 +599,10 @@ const ProfilePage = () => {
                         {currentUser.preferences.priceRange && (
                           <Col md={12}>
                             <p><strong>Rango de precio:</strong> 
-                              {currentUser.preferences.priceRange.min && formatPrice(currentUser.preferences.priceRange.min)} 
-                              {currentUser.preferences.priceRange.min && currentUser.preferences.priceRange.max && ' - '}
-                              {currentUser.preferences.priceRange.max && formatPrice(currentUser.preferences.priceRange.max)}
-                              {!currentUser.preferences.priceRange.min && !currentUser.preferences.priceRange.max && 'No especificado'}
+                              {currentUser.preferences?.priceRange?.min && formatPrice(currentUser.preferences.priceRange.min)} 
+                              {currentUser.preferences?.priceRange?.min && currentUser.preferences?.priceRange?.max && ' - '}
+                              {currentUser.preferences?.priceRange?.max && formatPrice(currentUser.preferences.priceRange.max)}
+                              {!currentUser.preferences?.priceRange?.min && !currentUser.preferences?.priceRange?.max && 'No especificado'}
                             </p>
                           </Col>
                         )}

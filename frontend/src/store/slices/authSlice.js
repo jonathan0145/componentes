@@ -215,7 +215,8 @@ const authSlice = createSlice({
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = { ...state.user, ...action.payload };
+        // Usar los datos planos del usuario devueltos en action.payload.data
+        state.user = { ...state.user, ...action.payload.data };
         toast.success('Perfil actualizado correctamente');
       })
       .addCase(updateProfile.rejected, (state, action) => {
