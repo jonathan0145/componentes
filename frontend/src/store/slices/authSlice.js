@@ -9,14 +9,19 @@ export const loginUser = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
+      // 1. Login
       const response = await authService.login(email, password);
-      
       // Establecer el token en apiClient
       if (response.data.token) {
         setAuthToken(response.data.token);
       }
-      
-      return response.data;
+      // 2. Obtener perfil completo
+      const profileResponse = await authService.getProfile();
+      // 3. Combinar datos de login y perfil
+      return {
+        ...response.data,
+        user: profileResponse.data.data // el backend retorna { data: { ...user, ...profile } }
+      };
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Error al iniciar sesión');
     }
@@ -215,8 +220,19 @@ const authSlice = createSlice({
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.loading = false;
-        // Usar los datos planos del usuario devueltos en action.payload.data
-        state.user = { ...state.user, ...action.payload.data };
+        // Merge profundo para preferences
+        if (action.payload.data && typeof action.payload.data === 'object') {
+          state.user = {
+            ...state.user,
+            ...action.payload.data,
+            preferences: {
+              ...(state.user?.preferences || {}),
+              ...(action.payload.data.preferences || {})
+            }
+          };
+        } else {
+          state.user = { ...state.user, ...action.payload.data };
+        }
         toast.success('Perfil actualizado correctamente');
       })
       .addCase(updateProfile.rejected, (state, action) => {

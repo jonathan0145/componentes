@@ -7,7 +7,7 @@
 
 /**
  * @swagger
- * /api/auth/login:
+ * /api/v1/auth/login:
  *   post:
  *     summary: Iniciar sesión
  *     tags: [Autenticación]
@@ -28,7 +28,7 @@
  *       401:
  *         description: Credenciales inválidas
  *
- * /api/auth/register:
+ * /api/v1/auth/register:
  *   post:
  *     summary: Registrar usuario
  *     tags: [Autenticación]

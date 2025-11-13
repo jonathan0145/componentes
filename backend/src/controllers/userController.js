@@ -16,6 +16,15 @@ exports.getProfile = async (req, res) => {
 
     const { password, ...userData } = user.toJSON();
     const profile = userData.profile || {};
+    // Asegurar que preferences sea objeto
+    let preferences = profile.preferences || {};
+    if (typeof preferences === 'string') {
+      try {
+        preferences = JSON.parse(preferences);
+      } catch (e) {
+        preferences = {};
+      }
+    }
     res.json({
       success: true,
       data: {
@@ -27,7 +36,7 @@ exports.getProfile = async (req, res) => {
         phone: profile.phone || '',
         avatarUrl: profile.avatar || '',
         isVerified: userData.verified || false,
-        preferences: profile.preferences || {},
+        preferences,
         createdAt: userData.createdAt,
         updatedAt: userData.updatedAt
       },

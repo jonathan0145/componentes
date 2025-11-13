@@ -3,6 +3,80 @@
  * tags:
  *   name: Users
  *   description: Endpoints para gestión de usuarios
+ *
+ * /api/v1/users/profile:
+ *   get:
+ *     summary: Obtener el perfil del usuario autenticado
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Perfil del usuario
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 avatarUrl:
+ *                   type: string
+ *                 preferences:
+ *                   type: object
+ *       401:
+ *         description: No autorizado
+ *   put:
+ *     summary: Actualizar el perfil del usuario autenticado
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               preferences:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Perfil actualizado
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: No autorizado
+ *
+ * /api/v1/users/avatar:
+ *   post:
+ *     summary: Subir o actualizar avatar del usuario autenticado
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar actualizado
+ *       400:
+ *         description: Archivo inválido
+ *       401:
+ *         description: No autorizado
  */
 
 const { body, validationResult } = require('express-validator');

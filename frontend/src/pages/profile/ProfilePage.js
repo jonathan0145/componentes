@@ -282,20 +282,20 @@ const ProfilePage = () => {
                           {currentUser.preferences ? (
                             <Row>
                               <Col md={6}>
-                                <p><strong>Ubicación preferida:</strong> {currentUser.preferences.location || 'No especificada'}</p>
-                                <p><strong>Tipo de propiedad:</strong> {currentUser.preferences.propertyType || 'Cualquiera'}</p>
+                                <p><strong>Ubicación preferida:</strong> {currentUser.preferences?.location || 'No especificada'}</p>
+                                <p><strong>Tipo de propiedad:</strong> {currentUser.preferences?.propertyType || 'Cualquiera'}</p>
                               </Col>
                               <Col md={6}>
-                                <p><strong>Habitaciones:</strong> {currentUser.preferences.bedrooms || 'Cualquiera'}</p>
-                                <p><strong>Baños:</strong> {currentUser.preferences.bathrooms || 'Cualquiera'}</p>
+                                <p><strong>Habitaciones:</strong> {currentUser.preferences?.bedrooms || 'Cualquiera'}</p>
+                                <p><strong>Baños:</strong> {currentUser.preferences?.bathrooms || 'Cualquiera'}</p>
                               </Col>
-                              {currentUser.preferences.priceRange && (
+                              {currentUser.preferences?.priceRange && (
                                 <Col md={12}>
                                   <p><strong>Rango de precio:</strong> 
-                                    {currentUser.preferences.priceRange.min && formatPrice(currentUser.preferences.priceRange.min)} 
-                                    {currentUser.preferences.priceRange.min && currentUser.preferences.priceRange.max && ' - '}
-                                    {currentUser.preferences.priceRange.max && formatPrice(currentUser.preferences.priceRange.max)}
-                                    {!currentUser.preferences.priceRange.min && !currentUser.preferences.priceRange.max && 'No especificado'}
+                                    {currentUser.preferences?.priceRange?.min ? formatPrice(currentUser.preferences?.priceRange?.min) : ''}
+                                    {currentUser.preferences?.priceRange?.min && currentUser.preferences?.priceRange?.max ? ' - ' : ''}
+                                    {currentUser.preferences?.priceRange?.max ? formatPrice(currentUser.preferences?.priceRange?.max) : ''}
+                                    {!currentUser.preferences?.priceRange?.min && !currentUser.preferences?.priceRange?.max && 'No especificado'}
                                   </p>
                                 </Col>
                               )}
@@ -616,19 +616,19 @@ const ProfilePage = () => {
                     {currentUser.preferences ? (
                       <Row>
                         <Col md={6}>
-                          <p><strong>Ubicación preferida:</strong> {currentUser.preferences.location || 'No especificada'}</p>
-                          <p><strong>Tipo de propiedad:</strong> {currentUser.preferences.propertyType || 'Cualquiera'}</p>
+                          <p><strong>Ubicación preferida:</strong> {currentUser.preferences?.location || 'No especificada'}</p>
+                          <p><strong>Tipo de propiedad:</strong> {currentUser.preferences?.propertyType || 'Cualquiera'}</p>
                         </Col>
                         <Col md={6}>
-                          <p><strong>Habitaciones:</strong> {currentUser.preferences.bedrooms || 'Cualquiera'}</p>
-                          <p><strong>Baños:</strong> {currentUser.preferences.bathrooms || 'Cualquiera'}</p>
+                          <p><strong>Habitaciones:</strong> {currentUser.preferences?.bedrooms || 'Cualquiera'}</p>
+                          <p><strong>Baños:</strong> {currentUser.preferences?.bathrooms || 'Cualquiera'}</p>
                         </Col>
-                        {currentUser.preferences.priceRange && (
+                        {currentUser.preferences?.priceRange && (
                           <Col md={12}>
                             <p><strong>Rango de precio:</strong> 
-                              {currentUser.preferences?.priceRange?.min && formatPrice(currentUser.preferences.priceRange.min)} 
-                              {currentUser.preferences?.priceRange?.min && currentUser.preferences?.priceRange?.max && ' - '}
-                              {currentUser.preferences?.priceRange?.max && formatPrice(currentUser.preferences.priceRange.max)}
+                              {currentUser.preferences?.priceRange?.min ? formatPrice(currentUser.preferences?.priceRange?.min) : ''}
+                              {currentUser.preferences?.priceRange?.min && currentUser.preferences?.priceRange?.max ? ' - ' : ''}
+                              {currentUser.preferences?.priceRange?.max ? formatPrice(currentUser.preferences?.priceRange?.max) : ''}
                               {!currentUser.preferences?.priceRange?.min && !currentUser.preferences?.priceRange?.max && 'No especificado'}
                             </p>
                           </Col>
@@ -929,7 +929,7 @@ const ProfilePage = () => {
                         <Form.Control
                           type="text"
                           name="preferences.location"
-                          value={formData.preferences.location}
+                          value={formData.preferences?.location || ''}
                           onChange={handleChange}
                           placeholder="Ej: Bogotá, Zona Norte"
                         />
@@ -940,7 +940,7 @@ const ProfilePage = () => {
                         <Form.Label>Tipo de Propiedad</Form.Label>
                         <Form.Select
                           name="preferences.propertyType"
-                          value={formData.preferences.propertyType}
+                          value={formData.preferences?.propertyType || ''}
                           onChange={handleChange}
                         >
                           <option value="">Cualquiera</option>
@@ -960,7 +960,7 @@ const ProfilePage = () => {
                         <Form.Control
                           type="number"
                           name="min"
-                          value={formData.preferences.priceRange.min}
+                          value={formData.preferences?.priceRange?.min || ''}
                           onChange={handlePriceRangeChange}
                           placeholder="Ej: 200000000"
                         />
@@ -972,7 +972,7 @@ const ProfilePage = () => {
                         <Form.Control
                           type="number"
                           name="max"
-                          value={formData.preferences.priceRange.max}
+                          value={formData.preferences?.priceRange?.max || ''}
                           onChange={handlePriceRangeChange}
                           placeholder="Ej: 500000000"
                         />
@@ -986,7 +986,7 @@ const ProfilePage = () => {
                         <Form.Label>Habitaciones</Form.Label>
                         <Form.Select
                           name="preferences.bedrooms"
-                          value={formData.preferences.bedrooms}
+                          value={formData.preferences?.bedrooms || ''}
                           onChange={handleChange}
                         >
                           <option value="">Cualquiera</option>
@@ -1002,7 +1002,7 @@ const ProfilePage = () => {
                         <Form.Label>Baños</Form.Label>
                         <Form.Select
                           name="preferences.bathrooms"
-                          value={formData.preferences.bathrooms}
+                          value={formData.preferences?.bathrooms || ''}
                           onChange={handleChange}
                         >
                           <option value="">Cualquiera</option>
