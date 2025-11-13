@@ -1,3 +1,4 @@
+import authService from '@services/authService';
 import { FaPhone, FaMapMarkerAlt, FaEdit, FaHeart, FaBriefcase } from 'react-icons/fa';
 
 import React, { useState, useEffect } from 'react';
@@ -13,6 +14,32 @@ import VerificationBadges from '@components/verification/VerificationBadges';
 const ProfilePage = () => {
   // Obtener currentUser ANTES de cualquier uso
   const currentUser = useSelector(selectCurrentUser);
+
+  // Estado para previsualizar el avatar seleccionado
+  const [avatarPreview, setAvatarPreview] = useState('/default-avatar.png');
+
+  useEffect(() => {
+    if (currentUser) {
+      setAvatarPreview(currentUser.avatarUrl || currentUser.avatar || '/default-avatar.png');
+    }
+  }, [currentUser]);
+
+  // Handler para subir avatar
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarPreview(URL.createObjectURL(file));
+      try {
+        const response = await authService.uploadAvatar(file);
+        if (response.data?.data?.avatarUrl) {
+          setFormData((prev) => ({ ...prev, avatar: response.data.data.avatarUrl }));
+          toast.success('Avatar actualizado');
+        }
+      } catch (err) {
+        toast.error('Error al subir avatar');
+      }
+    }
+  };
   const dispatch = useDispatch();
   const verifications = useSelector(selectVerifications);
 
@@ -191,7 +218,7 @@ const ProfilePage = () => {
               <div className="d-flex align-items-center">
                 <div className="flex-shrink-0">
                   <img 
-                    src={currentUser.avatar || '/default-avatar.png'} 
+                    src={currentUser.avatarUrl ? (currentUser.avatarUrl.startsWith('http') ? currentUser.avatarUrl : `http://localhost:3000${currentUser.avatarUrl}`) : '/default-avatar.png'} 
                     alt="Avatar" 
                     className="rounded-circle" 
                     width="100" 
@@ -808,14 +835,36 @@ const ProfilePage = () => {
       </Row>
 
       {/* Modal de edición */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+  <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Editar Perfil</Modal.Title>
         </Modal.Header>
-        <Form noValidate validated={validated} onSubmit={handleSubmit}>
+  <Form noValidate validated={validated} onSubmit={handleSubmit} encType="multipart/form-data">
           <Modal.Body>
             <Tabs defaultActiveKey="basic" className="mb-3">
               <Tab eventKey="basic" title="Información Básica">
+                <Row>
+                  <Col md={12} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Avatar</Form.Label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <img
+                          src={avatarPreview}
+                          alt="Avatar preview"
+                          className="rounded-circle"
+                          width="64"
+                          height="64"
+                          style={{ objectFit: 'cover', border: '1px solid #ccc' }}
+                        />
+                        <Form.Control
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                </Row>
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
