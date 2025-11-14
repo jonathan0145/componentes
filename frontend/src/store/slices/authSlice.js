@@ -3,6 +3,7 @@ import authService from '@services/authService';
 import { setAuthToken } from '@services/apiClient';
 import { toast } from 'react-toastify';
 import { getUserPermissions, getUserAccessLevel } from '@utils/permissionHelpers';
+import { syncEmailVerificationStatus } from './verificationSlice';
 
 // Thunks asíncronos
 export const loginUser = createAsyncThunk(
@@ -142,19 +143,20 @@ const authSlice = createSlice({
         state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
         state.error = null;
-        
+
         // Calcular permisos y nivel de acceso
         state.userPermissions = getUserPermissions(action.payload.user);
         state.accessLevel = getUserAccessLevel(action.payload.user);
-        
+
         localStorage.setItem('token', action.payload.token);
         localStorage.setItem('refreshToken', action.payload.refreshToken);
-        
+
         // Conectar Socket.io con el token
         import('@services/socketService').then(({ default: socketService }) => {
           socketService.connect(action.payload.token);
         });
-        
+
+
         toast.success(`¡Bienvenido, ${action.payload.user.firstName}!`);
       })
       .addCase(loginUser.rejected, (state, action) => {

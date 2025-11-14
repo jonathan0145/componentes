@@ -1,4 +1,35 @@
+const bcrypt = require('bcrypt');
 const { User, Profile, Role } = require('../models');
+
+// Cambiar contraseña del usuario autenticado
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { currentPassword, newPassword } = req.body;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'No autenticado' });
+    }
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Faltan campos requeridos' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    }
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      return res.status(400).json({ success: false, message: 'La contraseña actual es incorrecta' });
+    }
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.json({ success: true, message: 'Contraseña actualizada correctamente' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error al cambiar la contraseña', details: error.message });
+  }
+};
 
 // Obtener perfil del usuario autenticado
 exports.getProfile = async (req, res) => {
@@ -36,6 +67,7 @@ exports.getProfile = async (req, res) => {
         phone: profile.phone || '',
         avatarUrl: profile.avatar || '',
         isVerified: userData.verified || false,
+        emailVerified: userData.emailVerified,
         preferences,
         createdAt: userData.createdAt,
         updatedAt: userData.updatedAt

@@ -1,5 +1,33 @@
 /**
  * @swagger
+ * /api/v1/users/change-password:
+ *   put:
+ *     summary: Cambiar la contraseña del usuario autenticado
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Contraseña actualizada correctamente
+ *       400:
+ *         description: Error en la solicitud o contraseña incorrecta
+ *       401:
+ *         description: No autenticado
+ */
+
+/**
+ * @swagger
  * tags:
  *   name: Users
  *   description: Endpoints para gestión de usuarios
@@ -129,6 +157,8 @@ const { verifyToken, requireRole } = require('../middlewares/authMiddleware');
 const { generalLimiter } = require('../middlewares/rateLimiters');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
+
+router.put('/change-password', verifyToken, userController.changePassword);
 
 // Perfil del usuario autenticado
 router.get('/profile', verifyToken, userController.getProfile);

@@ -1,129 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-
-// Mock API functions
-const mockVerificationAPI = {
-  getUserVerifications: async (userId) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return {
-      email: { 
-        status: 'verified', 
-        verifiedAt: '2024-10-01T10:00:00.000Z',
-        attempts: 1,
-        lastAttempt: '2024-10-01T09:58:00.000Z'
-      },
-      phone: { 
-        status: 'pending', 
-        verifiedAt: null,
-        attempts: 1,
-        lastAttempt: '2024-10-08T15:30:00.000Z'
-      },
-      identity: { 
-        status: 'not_started', 
-        verifiedAt: null,
-        documents: [],
-        reviewNotes: null
-      },
-      professional: { 
-        status: 'pending', 
-        verifiedAt: null,
-        documents: [
-          {
-            id: 1,
-            name: 'licencia_agente.pdf',
-            uploadedAt: '2024-10-07T14:20:00.000Z',
-            status: 'under_review'
-          }
-        ],
-        reviewNotes: 'Documentos en proceso de revisión'
-      }
-    };
-  },
-
-  sendEmailVerification: async (email) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-      success: true,
-      message: 'Código enviado exitosamente',
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutos
-    };
-  },
-
-  sendPhoneVerification: async (phoneNumber) => {
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    return {
-      success: true,
-      message: 'SMS enviado exitosamente',
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 minutos
-    };
-  },
-
-  verifyCode: async (type, code) => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Simular validación de código
-    if (code === '123456') {
-      return {
-        success: true,
-        verifiedAt: new Date().toISOString(),
-        message: 'Verificación exitosa'
-      };
-    } else {
-      throw new Error('Código de verificación incorrecto');
-    }
-  },
-
-  uploadDocuments: async (type, files) => {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const uploadedDocuments = files.map((file, index) => ({
-      id: Date.now() + index,
-      name: file.name,
-      size: file.size,
-      uploadedAt: new Date().toISOString(),
-      status: 'under_review'
-    }));
-
-    return {
-      success: true,
-      documents: uploadedDocuments,
-      message: 'Documentos subidos exitosamente'
-    };
-  },
-
-  getVerificationBadges: async (userId) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return [
-      {
-        type: 'email',
-        name: 'Email Verificado',
-        icon: 'envelope',
-        color: 'primary',
-        earnedAt: '2024-10-01T10:00:00.000Z'
-      },
-      {
-        type: 'phone',
-        name: 'Teléfono Verificado',
-        icon: 'phone',
-        color: 'success',
-        earnedAt: null
-      },
-      {
-        type: 'identity',
-        name: 'Identidad Verificada',
-        icon: 'id-card',
-        color: 'info',
-        earnedAt: null
-      },
-      {
-        type: 'professional',
-        name: 'Agente Certificado',
-        icon: 'user-tie',
-        color: 'warning',
-        earnedAt: null
-      }
-    ];
-  }
-};
+import * as verificationService from '@services/verificationService';
 
 // Async thunks
 export const fetchUserVerifications = createAsyncThunk(
@@ -138,14 +14,15 @@ export const fetchUserVerifications = createAsyncThunk(
   }
 );
 
+// Thunk para enviar verificación de email usando el backend real
 export const sendEmailVerification = createAsyncThunk(
   'verification/sendEmailVerification',
   async (email, { rejectWithValue }) => {
     try {
-      const result = await mockVerificationAPI.sendEmailVerification(email);
-      return result;
+      const { data } = await verificationService.sendEmailVerification(email);
+      return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -162,14 +39,15 @@ export const sendPhoneVerification = createAsyncThunk(
   }
 );
 
+// Thunk para confirmar código de email usando el backend real
 export const verifyCode = createAsyncThunk(
   'verification/verifyCode',
-  async ({ type, code }, { rejectWithValue }) => {
+  async ({ email, code }, { rejectWithValue }) => {
     try {
-      const result = await mockVerificationAPI.verifyCode(type, code);
-      return { type, ...result };
+      const { data } = await verificationService.confirmEmailVerification(email, code);
+      return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -199,13 +77,26 @@ export const fetchVerificationBadges = createAsyncThunk(
 );
 
 // Initial state
-const initialState = {
-  verifications: {
-    email: { status: 'not_started', verifiedAt: null, attempts: 0 },
+const getInitialVerifications = () => {
+  // Intentar leer el usuario del localStorage (persistencia básica)
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem('persist:root'));
+    if (user && user.auth) {
+      user = JSON.parse(user.auth).user;
+    }
+  } catch {}
+  const emailVerified = user?.emailVerified;
+  return {
+    email: { status: emailVerified ? 'verified' : 'not_started', verifiedAt: null, attempts: 0 },
     phone: { status: 'not_started', verifiedAt: null, attempts: 0 },
     identity: { status: 'not_started', verifiedAt: null, documents: [] },
     professional: { status: 'not_started', verifiedAt: null, documents: [] }
-  },
+  };
+};
+
+const initialState = {
+  verifications: getInitialVerifications(),
   badges: [],
   loading: {
     fetch: false,
@@ -231,6 +122,11 @@ const verificationSlice = createSlice({
     resetVerificationState: (state) => {
       state.verifications = initialState.verifications;
       state.error = null;
+    },
+    // Sincroniza el estado de verificación de email desde el valor de usuario
+    syncEmailVerificationStatus: (state, action) => {
+      const emailVerified = action.payload;
+      state.verifications.email.status = emailVerified ? 'verified' : 'not_started';
     },
     updateVerificationAttempt: (state, action) => {
       const { type, attemptData } = action.payload;
@@ -301,16 +197,15 @@ const verificationSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Verify code
+      // Verify code (solo email, backend real)
       .addCase(verifyCode.pending, (state) => {
         state.loading.codeVerification = true;
         state.error = null;
       })
       .addCase(verifyCode.fulfilled, (state, action) => {
         state.loading.codeVerification = false;
-        const { type, verifiedAt } = action.payload;
-        state.verifications[type].status = 'verified';
-        state.verifications[type].verifiedAt = verifiedAt;
+        state.verifications.email.status = 'verified';
+        state.verifications.email.verifiedAt = action.payload.verifiedAt || new Date().toISOString();
       })
       .addCase(verifyCode.rejected, (state, action) => {
         state.loading.codeVerification = false;
@@ -354,7 +249,8 @@ export const {
   clearError,
   resetVerificationState,
   updateVerificationAttempt,
-  addVerificationNote
+  addVerificationNote,
+  syncEmailVerificationStatus
 } = verificationSlice.actions;
 
 // Selectors

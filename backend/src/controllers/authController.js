@@ -71,7 +71,19 @@ exports.login = async (req, res) => {
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
     const token = jwt.sign({ id: user.id, role: user.Role ? user.Role.name : null }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.json({ mensaje: 'Login exitoso', token, user: { id: user.id, email: user.email, name: user.name, role: user.Role ? user.Role.name : null } });
+    res.json({
+      mensaje: 'Login exitoso',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.Role ? user.Role.name : null,
+        emailVerified: user.emailVerified,
+        verified: user.verified,
+        // Puedes agregar aquí otros campos de verificación si los usas
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Error en el login', detalle: error.message });
   }

@@ -6,14 +6,29 @@ import { Container, Row, Col, Card, Form, Button, Badge, Modal, Alert, Tab, Tabs
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser } from '@store/slices/authSlice';
 import { updateProfile } from '@store/slices/authSlice';
-import { selectVerifications } from '@store/slices/verificationSlice';
+import { selectVerifications, selectVerificationLoading, sendEmailVerification, verifyCode, syncEmailVerificationStatus } from '@store/slices/verificationSlice';
 import AgentAnalyticsDashboard from '@components/agents/AgentAnalyticsDashboard';
 import { toast } from 'react-toastify';
 import VerificationBadges from '@components/verification/VerificationBadges';
+import ChangePasswordModal from '@components/user/ChangePasswordModal';
 
 const ProfilePage = () => {
-  // Obtener currentUser ANTES de cualquier uso
   const currentUser = useSelector(selectCurrentUser);
+  console.log('ProfilePage montado. currentUser:', currentUser);
+    // Estado y lógica para cambio de contraseña
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const handleChangePassword = async ({ currentPassword, newPassword }) => {
+      setPasswordLoading(true);
+      try {
+        await authService.changePassword(currentPassword, newPassword);
+        toast.success('Contraseña actualizada correctamente');
+        setShowPasswordModal(false);
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Error al cambiar la contraseña');
+      }
+      setPasswordLoading(false);
+    };
 
   // Estado para previsualizar el avatar seleccionado
   const [avatarPreview, setAvatarPreview] = useState('/default-avatar.png');
@@ -42,6 +57,11 @@ const ProfilePage = () => {
   };
   const dispatch = useDispatch();
   const verifications = useSelector(selectVerifications);
+  const verificationLoading = useSelector(selectVerificationLoading);
+
+  // Estado para modal de verificación de email
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailCode, setEmailCode] = useState('');
 
 
   // Estados antes del useEffect
@@ -98,7 +118,21 @@ const ProfilePage = () => {
         coverageArea: ''
       }
     });
-  }, [currentUser]);
+    // Sincronizar badge de verificación de email tras login
+    if (currentUser && typeof currentUser.emailVerified !== 'undefined') {
+      // Convertir a booleano para soportar 1/0 o true/false
+      const isVerified = currentUser.emailVerified === true || currentUser.emailVerified === 1;
+      console.log('Valor de currentUser.emailVerified:', currentUser.emailVerified, 'Interpretado como:', isVerified);
+      dispatch(syncEmailVerificationStatus(isVerified));
+      setTimeout(() => {
+        // Mostrar el estado actualizado del store de verificación
+        const state = window.store ? window.store.getState() : null;
+        if (state) {
+          console.log('Estado de verifications en Redux:', state.verification.verifications.email);
+        }
+      }, 500);
+    }
+  }, [currentUser, dispatch]);
 
   // Proteger el renderizado si currentUser no está listo
   if (!currentUser) {
@@ -680,22 +714,89 @@ const ProfilePage = () => {
                 <Card.Body>
                   <div className="mb-3">
                     <h6>Cambiar Contraseña</h6>
-                    <Button variant="outline-primary" size="sm">
+                    <Button variant="outline-primary" size="sm" onClick={() => setShowPasswordModal(true)}>
                       Actualizar Contraseña
                     </Button>
+                    <ChangePasswordModal
+                      show={showPasswordModal}
+                      onClose={() => setShowPasswordModal(false)}
+                      onSubmit={handleChangePassword}
+                      loading={passwordLoading}
+                    />
                   </div>
                   
                   <div className="mb-3">
                     <h6>Verificación de Email</h6>
                     <div className="d-flex align-items-center">
-                      <Badge bg={currentUser.isVerified ? 'success' : 'warning'} className="me-2">
-                        {currentUser.isVerified ? 'Verificado' : 'Pendiente'}
+                      <Badge bg={verifications.email?.status === 'verified' ? 'success' : 'warning'} className="me-2">
+                        {verifications.email?.status === 'verified' ? 'Verificado' : 'Pendiente'}
                       </Badge>
-                      {!currentUser.isVerified && (
-                        <Button variant="outline-primary" size="sm">
-                          Enviar Verificación
+                      {verifications.email?.status !== 'verified' && (
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm"
+                          onClick={() => {
+                            dispatch(sendEmailVerification(currentUser.email))
+                              .unwrap()
+                              .then((res) => {
+                                toast.success(res?.message || 'Código enviado exitosamente');
+                                setShowEmailModal(true);
+                              })
+                              .catch((err) => {
+                                toast.error(err || 'No se pudo enviar el código');
+                              });
+                          }}
+                          disabled={verificationLoading.emailVerification}
+                        >
+                          {verificationLoading.emailVerification ? 'Enviando...' : 'Enviar Verificación'}
                         </Button>
                       )}
+                          {/* Modal de verificación de email */}
+                          <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)} centered>
+                            <Modal.Header closeButton>
+                              <Modal.Title>Verificar Email</Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body>
+                              <p>Hemos enviado un código de 6 dígitos a {currentUser.email}</p>
+                              <Form.Group>
+                                <Form.Label>Código de Verificación</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  placeholder="123456"
+                                  maxLength="6"
+                                  value={emailCode}
+                                  onChange={e => setEmailCode(e.target.value.replace(/\D/g, ''))}
+                                />
+                              </Form.Group>
+                            </Modal.Body>
+                            <Modal.Footer>
+                              <Button variant="secondary" onClick={() => setShowEmailModal(false)}>
+                                Cancelar
+                              </Button>
+                              <Button 
+                                variant="primary" 
+                                onClick={() => {
+                                  if (emailCode.length !== 6) {
+                                    toast.error('El código debe tener 6 dígitos');
+                                    return;
+                                  }
+                                  dispatch(verifyCode({ email: currentUser.email, code: emailCode }))
+                                    .unwrap()
+                                    .then(() => {
+                                      toast.success('Email verificado exitosamente');
+                                      setShowEmailModal(false);
+                                      setEmailCode('');
+                                    })
+                                    .catch((err) => {
+                                      toast.error(err || 'Código incorrecto');
+                                    });
+                                }}
+                                disabled={verificationLoading.codeVerification}
+                              >
+                                {verificationLoading.codeVerification ? 'Verificando...' : 'Verificar Código'}
+                              </Button>
+                            </Modal.Footer>
+                          </Modal>
                     </div>
                   </div>
 
