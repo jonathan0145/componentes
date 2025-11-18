@@ -52,7 +52,7 @@ const storageController = require('../controllers/storageController');
 const router = express.Router();
 
 // Subir archivo (Multer + GCS)
-router.post('/upload', storageController.upload, storageController.uploadFile);
+router.post('/upload', storageController.uploadMiddleware, storageController.uploadFile);
 // Descargar archivo
 router.get('/download/:id', storageController.downloadFile);
 

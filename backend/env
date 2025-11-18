@@ -1,0 +1,12 @@
+DB_NAME=inmotech
+DB_USER=root
+DB_PASS=
+DB_HOST=localhost
+PORT=3000
+JWT_SECRET=@jR3216417337
+//! google cloud
+GCLOUD_STORAGE_BUCKET=inmotechalmacenamiento
+
+//! Variables de entorno para el servicio de correo
+EMAIL_USER=jonathanivanrendonbermeo@gmail.com
+EMAIL_PASS=selwyiktayaieeqs
