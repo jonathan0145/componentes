@@ -5,7 +5,7 @@
 ### 1.1 Base URL
 ```
 Desarrollo: http://localhost:3000/api/v1
-Producción: https://api.inmochat.com/v1
+Producción: https://api.inmochat.com/api/v1
 ```
 
 ### 1.2 Autenticación
@@ -698,8 +698,10 @@ socket.on('appointment_scheduled', (data) => {
 
 ## 12. Versionado de API
 
+Todas las rutas REST están agrupadas bajo el prefijo `/api/v1`.
+
 La API utiliza versionado semántico en la URL:
-- `/api/v1` - Versión actual estable
+- `/api/v1` - Versión actual estable (todas las rutas documentadas usan este prefijo)
 - `/api/v2` - Próxima versión (beta)
 
 Los cambios breaking requieren nueva versión mayor.

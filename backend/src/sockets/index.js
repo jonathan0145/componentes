@@ -11,16 +11,18 @@ module.exports = function setupSockets() {
     socket.user = null;
 
     socket.on('authenticate', async (data) => {
+      console.log('[SOCKET] authenticate event recibido', data);
       try {
         const token = data?.token;
         if (!token) return socket.emit('authentication_error', { code: 'AUTH_001', message: 'Token requerido' });
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         // token decoded
-        socket.auth = true;
-        socket.user = decoded;
-        socket.join(`user:${decoded.id}`);
-  socket.emit('authenticated', { userId: decoded.id, role: decoded.role });
-  io.emit('user_online', { userId: decoded.id });
+    socket.auth = true;
+    socket.user = decoded;
+    socket.join(`user:${decoded.id}`);
+    console.log('[SOCKET] Usuario autenticado:', decoded.id);
+    socket.emit('authenticated', { userId: decoded.id, role: decoded.role });
+    io.emit('user_online', { userId: decoded.id });
       } catch (err) {
         socket.emit('authentication_error', { code: 'AUTH_001', message: 'Token inválido' });
         // optionally disconnect
@@ -29,12 +31,15 @@ module.exports = function setupSockets() {
     });
 
     socket.on('join_conversation', async ({ conversationId }) => {
+      console.log('[SOCKET] join_conversation', { userId: socket.user && socket.user.id, conversationId });
       if (!socket.auth) return socket.emit('authentication_error', { code: 'AUTH_001', message: 'No autenticado' });
       const userId = socket.user.id;
       const allowed = await userBelongsToConversation(userId, conversationId);
       if (!allowed) {
+        console.log('[SOCKET] join_conversation DENEGADO', { userId, conversationId });
         return socket.emit('join_error', { code: 'CONV_403', message: 'No tienes permiso para unirte a esta conversación' });
       }
+      console.log('[SOCKET] join_conversation PERMITIDO', { userId, conversationId });
       socket.join(`conversation:${conversationId}`);
       socket.emit('joined_conversation', { conversationId });
     });
@@ -45,6 +50,7 @@ module.exports = function setupSockets() {
     });
 
     socket.on('send_message', async (payload) => {
+      console.log('[SOCKET] send_message', { userId: socket.user && socket.user.id, payload });
       if (!socket.auth) return socket.emit('authentication_error', { code: 'AUTH_001', message: 'No autenticado' });
       const userId = socket.user.id;
       const allowed = await userBelongsToConversation(userId, payload.conversationId);
@@ -61,10 +67,12 @@ module.exports = function setupSockets() {
         isRead: false,
         createdAt: new Date().toISOString()
       };
-      io.to(`conversation:${payload.conversationId}`).emit('new_message', message);
+  console.log('[SOCKET] EMIT new_message', message);
+  io.to(`conversation:${payload.conversationId}`).emit('new_message', message);
     });
 
     socket.on('send_offer', async (payload) => {
+      console.log('[SOCKET] send_offer', { userId: socket.user && socket.user.id, payload });
       if (!socket.auth) return socket.emit('authentication_error', { code: 'AUTH_001', message: 'No autenticado' });
       const userId = socket.user.id;
       const allowed = await userBelongsToConversation(userId, payload.conversationId);
@@ -84,10 +92,12 @@ module.exports = function setupSockets() {
         status: 'pending',
         createdAt: new Date().toISOString()
       };
-      io.to(`conversation:${payload.conversationId}`).emit('new_offer', offer);
+  console.log('[SOCKET] EMIT new_offer', offer);
+  io.to(`conversation:${payload.conversationId}`).emit('new_offer', offer);
     });
 
     socket.on('schedule_appointment', async (payload) => {
+      console.log('[SOCKET] schedule_appointment', { userId: socket.user && socket.user.id, payload });
       if (!socket.auth) return socket.emit('authentication_error', { code: 'AUTH_001', message: 'No autenticado' });
       const userId = socket.user.id;
       const allowed = await userBelongsToConversation(userId, payload.conversationId);
@@ -107,7 +117,8 @@ module.exports = function setupSockets() {
         status: 'pending',
         createdAt: new Date().toISOString()
       };
-      io.to(`conversation:${payload.conversationId}`).emit('appointment_scheduled', appt);
+  console.log('[SOCKET] EMIT appointment_scheduled', appt);
+  io.to(`conversation:${payload.conversationId}`).emit('appointment_scheduled', appt);
     });
 
     socket.on('typing_start', ({ conversationId }) => {

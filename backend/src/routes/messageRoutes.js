@@ -50,7 +50,7 @@ router.post('/',
 	verifyToken,
 	generalLimiter,
 	[
-		body('chatId').isInt(),
+		body('chatId').isString(),
 		body('senderId').optional().isInt(),
 		body('content').isString().notEmpty().trim().escape()
 	],

@@ -1,10 +1,10 @@
 {
 	"folders": [
 		{
-			"path": "../.."
+			"path": "../../../trimestre-9"
 		},
 		{
-			"path": "../../../trimestre-9"
+			"path": "../.."
 		}
 	],
 	"settings": {}

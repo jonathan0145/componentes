@@ -1,5 +1,62 @@
-const { Verification } = require('../models');
+const { Verification, User } = require('../models');
+const { sendVerificationEmail } = require('../services/emailService');
 
+// POST /api/verifications/email/confirm
+exports.confirmEmailVerificationCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ success: false, message: 'Email y código requeridos' });
+    }
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+    if (!user.emailVerificationCode || !user.emailVerificationExpires) {
+      return res.status(400).json({ success: false, message: 'No hay código pendiente de verificación' });
+    }
+    if (user.emailVerificationExpires < new Date()) {
+      return res.status(400).json({ success: false, message: 'El código ha expirado' });
+    }
+    if (user.emailVerificationCode !== code) {
+      return res.status(400).json({ success: false, message: 'Código incorrecto' });
+    }
+    user.emailVerified = true;
+    user.emailVerificationCode = null;
+    user.emailVerificationExpires = null;
+    await user.save();
+    return res.json({ success: true, message: 'Email verificado correctamente' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Error verificando código', error: err.message });
+  }
+};
+
+// POST /api/verifications/email/send
+exports.sendEmailVerificationCode = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email requerido' });
+    }
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+    }
+    // Generar código de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Expira en 15 minutos
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
+    // Guardar en el usuario
+    user.emailVerificationCode = code;
+    user.emailVerificationExpires = expires;
+    await user.save();
+    // Enviar email
+    await sendVerificationEmail(email, code);
+    return res.json({ success: true, message: 'Código de verificación enviado al email' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Error enviando código', error: err.message });
+  }
+};
 exports.getAllVerifications = async (req, res) => {
   try {
     const verifications = await Verification.findAll();

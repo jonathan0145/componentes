@@ -34,4 +34,9 @@ if (token) {
   setAuthToken(token);
 }
 
+// Exponer el store globalmente para acceso desde slices
+if (typeof window !== 'undefined') {
+  window.store = store;
+}
+
 export default store;

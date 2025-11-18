@@ -65,5 +65,6 @@ module.exports = {
   Verification,
   Role,
   Permission,
-  File
+  File,
+  Profile: require('./profile')
 };
