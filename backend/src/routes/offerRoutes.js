@@ -29,7 +29,7 @@ const { body, validationResult } = require('express-validator');
  *             properties:
  *               propertyId:
  *                 type: integer
- *               userId:
+ *               buyerId:
  *                 type: integer
  *               amount:
  *                 type: number
@@ -46,14 +46,16 @@ const express = require('express');
 const offerController = require('../controllers/offerController');
 const router = express.Router();
 const { verifyToken } = require('../middlewares/authMiddleware');
+const { generalLimiter } = require('../middlewares/rateLimiters');
 
-router.get('/', offerController.getAllOffers);
-router.get('/:id', offerController.getOfferById);
+router.get('/', generalLimiter, offerController.getAllOffers);
+router.get('/:id', generalLimiter, offerController.getOfferById);
 router.post('/',
 	verifyToken,
+	generalLimiter,
 	[
 		body('propertyId').isInt(),
-		body('userId').isInt(),
+	body('buyerId').isInt(),
 		body('amount').isNumeric().toFloat()
 	],
 	(req, res, next) => {
@@ -65,11 +67,13 @@ router.post('/',
 	},
 	offerController.createOffer
 );
-router.put('/:id', verifyToken, offerController.updateOffer);
+router.put('/:id', verifyToken, generalLimiter, offerController.updateOffer);
 // Aceptar oferta
-router.post('/:id/accept', verifyToken, offerController.acceptOffer);
+router.post('/:id/accept', verifyToken, generalLimiter, offerController.acceptOffer);
 // Rechazar oferta
-router.post('/:id/reject', verifyToken, offerController.rejectOffer);
-router.delete('/:id', verifyToken, offerController.deleteOffer);
+router.post('/:id/reject', verifyToken, generalLimiter, offerController.rejectOffer);
+// Responder oferta
+router.post('/:id/respond', verifyToken, generalLimiter, offerController.respondOffer);
+router.delete('/:id', verifyToken, generalLimiter, offerController.deleteOffer);
 
 module.exports = router;

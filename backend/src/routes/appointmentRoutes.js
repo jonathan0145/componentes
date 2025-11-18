@@ -40,11 +40,13 @@ const { body, validationResult } = require('express-validator');
  */
 const express = require('express');
 const appointmentController = require('../controllers/appointmentController');
+const { generalLimiter } = require('../middlewares/rateLimiters');
 const router = express.Router();
 
-router.get('/', appointmentController.getAllAppointments);
-router.get('/:id', appointmentController.getAppointmentById);
+router.get('/', generalLimiter, appointmentController.getAllAppointments);
+router.get('/:id', generalLimiter, appointmentController.getAppointmentById);
 router.post('/',
+	generalLimiter,
 	[
 		body('userId').isInt(),
 		body('propertyId').isInt(),
@@ -60,8 +62,8 @@ router.post('/',
 	appointmentController.createAppointment
 );
 // Agendar cita avanzada (valida disponibilidad)
-router.post('/schedule', appointmentController.scheduleAppointment);
-router.put('/:id', appointmentController.updateAppointment);
-router.delete('/:id', appointmentController.deleteAppointment);
+router.post('/schedule', generalLimiter, appointmentController.scheduleAppointment);
+router.put('/:id', generalLimiter, appointmentController.updateAppointment);
+router.delete('/:id', generalLimiter, appointmentController.deleteAppointment);
 
 module.exports = router;

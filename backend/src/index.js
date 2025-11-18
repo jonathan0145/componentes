@@ -27,7 +27,10 @@ app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/appointments', require('./routes/appointmentRoutes'));
 app.use('/api/chats', require('./routes/chatRoutes'));
+app.use('/conversations', require('./routes/conversationRoutes'));
 app.use('/api/pricehistories', require('./routes/priceHistoryRoutes'));
+// alias por compatibilidad con tests
+app.use('/api/price-history', require('./routes/priceHistoryRoutes'));
 app.use('/api/verifications', require('./routes/verificationRoutes'));
 app.use('/api/roles', require('./routes/roleRoutes'));
 app.use('/api/permissions', require('./routes/permissionRoutes'));
@@ -43,15 +46,41 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-// Sincronizar modelos con la base de datos
-sequelize.sync({ alter: true })
-  .then(() => {
-    console.log('Modelos sincronizados con la base de datos');
-  })
-  .catch((err) => {
-    console.error('Error al sincronizar modelos:', err);
-  });
+// Nota: sincronización se realiza dentro de startServer para controlar orden en tests
+// Inicializar servidor HTTP y Socket.io (exponer función para tests)
+const http = require('http');
 
-app.listen(PORT, () => {
-  console.log(`Servidor API escuchando en puerto ${PORT}`);
-});
+async function startServer(port = PORT) {
+  try {
+    await sequelize.sync({ alter: false });
+    console.log('Modelos sincronizados con la base de datos');
+    const server = http.createServer(app);
+    const { init } = require('./services/socketProvider');
+    const setupSockets = require('./sockets');
+
+    const io = init(server);
+    setupSockets();
+
+    await new Promise((resolve) => {
+      server.listen(port, () => {
+        console.log(`Servidor API (HTTP+Socket.io) escuchando en puerto ${port}`);
+        resolve();
+      });
+    });
+
+    return { server, io };
+  } catch (err) {
+    console.error('Error al sincronizar modelos:', err);
+    throw err;
+  }
+}
+
+// Si este archivo se ejecuta directamente, arrancar el servidor
+if (require.main === module) {
+  startServer();
+}
+
+// Nota: la sincronización de la BD para tests se realiza desde el setup de Jest
+
+module.exports = app;
+module.exports.startServer = startServer;

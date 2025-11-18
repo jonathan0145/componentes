@@ -1,15 +1,80 @@
+const { userBelongsToConversation } = require('../utils/conversationUtils');
+// Responder a una oferta
+exports.respondOffer = async (req, res) => {
+  try {
+    const offerId = req.params.id;
+    const { action, response, counterOffer } = req.body;
+    const offer = await Offer.findByPk(offerId);
+    if (!offer) return res.status(404).json({ success: false, error: { code: 'OFFER_001', message: 'Oferta no encontrada' }, timestamp: new Date().toISOString() });
+    // Actualizar estado según action
+    if (action === 'accept') offer.status = 'accepted';
+    else if (action === 'reject') offer.status = 'rejected';
+    else if (action === 'counter' && counterOffer) {
+      offer.status = 'countered';
+      offer.amount = counterOffer.amount || offer.amount;
+    }
+    await offer.save();
+    // Emitir evento socket
+    try {
+      const { getIo } = require('../services/socketProvider');
+      const io = getIo();
+      // intentar notificar a la conversación asociada (si existe propertyId -> get chats)
+      io.emit('offer_response', { offerId: offer.id, status: offer.status, response });
+    } catch (e) {
+      console.warn('Socket emit offer_response failed:', e.message);
+    }
+    res.json({ success: true, data: offer, message: 'Respuesta a la oferta registrada', timestamp: new Date().toISOString() });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'OFFER_011',
+        message: 'Error al responder la oferta',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
 // Aceptar una oferta
 exports.acceptOffer = async (req, res) => {
   try {
     const offer = await Offer.findByPk(req.params.id);
-    if (!offer) return res.status(404).json({ error: 'Oferta no encontrada' });
+    if (!offer) return res.status(404).json({
+      success: false,
+      error: {
+        code: 'OFFER_001',
+        message: 'Oferta no encontrada'
+      },
+      timestamp: new Date().toISOString()
+    });
     if (offer.status === 'aceptada') {
-      return res.status(400).json({ error: 'La oferta ya fue aceptada' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'OFFER_002',
+          message: 'La oferta ya fue aceptada'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
     await offer.update({ status: 'aceptada' });
-    res.json({ mensaje: 'Oferta aceptada', offer });
+    res.json({
+      success: true,
+      data: offer,
+      message: 'Oferta aceptada',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al aceptar la oferta', detalle: error.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'OFFER_003',
+        message: 'Error al aceptar la oferta',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -17,14 +82,41 @@ exports.acceptOffer = async (req, res) => {
 exports.rejectOffer = async (req, res) => {
   try {
     const offer = await Offer.findByPk(req.params.id);
-    if (!offer) return res.status(404).json({ error: 'Oferta no encontrada' });
+    if (!offer) return res.status(404).json({
+      success: false,
+      error: {
+        code: 'OFFER_001',
+        message: 'Oferta no encontrada'
+      },
+      timestamp: new Date().toISOString()
+    });
     if (offer.status === 'rechazada') {
-      return res.status(400).json({ error: 'La oferta ya fue rechazada' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'OFFER_004',
+          message: 'La oferta ya fue rechazada'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
     await offer.update({ status: 'rechazada' });
-    res.json({ mensaje: 'Oferta rechazada', offer });
+    res.json({
+      success: true,
+      data: offer,
+      message: 'Oferta rechazada',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al rechazar la oferta', detalle: error.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'OFFER_005',
+        message: 'Error al rechazar la oferta',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 const { Offer } = require('../models');
@@ -35,7 +127,15 @@ exports.getAllOffers = async (req, res) => {
     const offers = await Offer.findAll();
     res.json(offers);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener ofertas' });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'OFFER_006',
+        message: 'Error al obtener ofertas',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -43,10 +143,30 @@ exports.getAllOffers = async (req, res) => {
 exports.getOfferById = async (req, res) => {
   try {
     const offer = await Offer.findByPk(req.params.id);
-    if (!offer) return res.status(404).json({ error: 'Oferta no encontrada' });
-    res.json(offer);
+    if (!offer) return res.status(404).json({
+      success: false,
+      error: {
+        code: 'OFFER_001',
+        message: 'Oferta no encontrada'
+      },
+      timestamp: new Date().toISOString()
+    });
+    res.json({
+      success: true,
+      data: offer,
+      message: 'Oferta obtenida correctamente',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener la oferta' });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'OFFER_007',
+        message: 'Error al obtener la oferta',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -54,17 +174,68 @@ exports.getOfferById = async (req, res) => {
 
 exports.createOffer = async (req, res) => {
   try {
-    const { propertyId, userId, amount, status } = req.body;
-    if (!propertyId || !userId || !amount) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios: propertyId, userId, amount' });
+    const { propertyId, buyerId, amount, status, conversationId } = req.body;
+    if (!propertyId || !buyerId || !amount || !conversationId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'Faltan campos obligatorios: propertyId, buyerId, amount, conversationId'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
     if (typeof amount !== 'number' || amount <= 0) {
-      return res.status(400).json({ error: 'El monto debe ser un número positivo' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'El monto debe ser un número positivo'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
-    const offer = await Offer.create({ propertyId, userId, amount, status });
-    res.status(201).json(offer);
+    const { User } = require('../models');
+    const buyer = await User.findByPk(buyerId);
+    if (!buyer || buyer.role !== 'buyer') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'El buyerId no corresponde a un usuario con rol buyer'
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+    // Validar pertenencia a la conversación
+    const allowed = await userBelongsToConversation(buyerId, conversationId);
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'CONV_403',
+          message: 'El usuario no pertenece a la conversación indicada'
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
+    const offer = await Offer.create({ propertyId, buyerId, amount, status });
+    res.status(201).json({
+      success: true,
+      data: offer,
+      message: 'Oferta creada correctamente',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear la oferta', detalle: error.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'OFFER_008',
+        message: 'Error al crear la oferta',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -73,15 +244,42 @@ exports.createOffer = async (req, res) => {
 exports.updateOffer = async (req, res) => {
   try {
     const offer = await Offer.findByPk(req.params.id);
-    if (!offer) return res.status(404).json({ error: 'Oferta no encontrada' });
+    if (!offer) return res.status(404).json({
+      success: false,
+      error: {
+        code: 'OFFER_001',
+        message: 'Oferta no encontrada'
+      },
+      timestamp: new Date().toISOString()
+    });
     const { amount } = req.body;
     if (amount && (typeof amount !== 'number' || amount <= 0)) {
-      return res.status(400).json({ error: 'El monto debe ser un número positivo' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'El monto debe ser un número positivo'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
     await offer.update(req.body);
-    res.json(offer);
+    res.json({
+      success: true,
+      data: offer,
+      message: 'Oferta actualizada correctamente',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar la oferta', detalle: error.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'OFFER_009',
+        message: 'Error al actualizar la oferta',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -90,10 +288,30 @@ exports.updateOffer = async (req, res) => {
 exports.deleteOffer = async (req, res) => {
   try {
     const offer = await Offer.findByPk(req.params.id);
-    if (!offer) return res.status(404).json({ error: 'Oferta no encontrada' });
+    if (!offer) return res.status(404).json({
+      success: false,
+      error: {
+        code: 'OFFER_001',
+        message: 'Oferta no encontrada'
+      },
+      timestamp: new Date().toISOString()
+    });
     await offer.destroy();
-    res.json({ mensaje: 'Oferta eliminada', id: req.params.id });
+    res.json({
+      success: true,
+      data: { id: req.params.id },
+      message: 'Oferta eliminada',
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al eliminar la oferta', detalle: error.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'OFFER_010',
+        message: 'Error al eliminar la oferta',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };

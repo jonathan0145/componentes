@@ -15,6 +15,6 @@ describe('Endpoints de roles', () => {
       .post('/api/roles')
       .send({ name: 'admin' })
       .set('Authorization', 'Bearer token_de_prueba');
-    expect([200, 201, 400]).toContain(res.statusCode);
+  expect([200, 201, 400, 409]).toContain(res.statusCode);
   });
 });

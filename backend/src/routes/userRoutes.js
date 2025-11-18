@@ -52,12 +52,21 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const { verifyToken, requireRole } = require('../middlewares/authMiddleware');
+const { generalLimiter } = require('../middlewares/rateLimiters');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
-router.get('/', verifyToken, requireRole('admin'), userController.getAllUsers);
-router.get('/:id', verifyToken, userController.getUserById);
+// Perfil del usuario autenticado
+router.get('/profile', verifyToken, userController.getProfile);
+router.put('/profile', verifyToken, userController.updateProfile);
+router.post('/avatar', verifyToken, upload.single('avatar'), userController.uploadAvatar);
+
+router.get('/', verifyToken, requireRole('admin'), generalLimiter, userController.getAllUsers);
+router.get('/:id', verifyToken, generalLimiter, userController.getUserById);
 router.post('/',
 	verifyToken,
 	requireRole('admin'),
+	generalLimiter,
 	[
 		body('name').isString().notEmpty().trim().escape(),
 		body('email').isEmail().normalizeEmail(),
@@ -72,7 +81,7 @@ router.post('/',
 	},
 	userController.createUser
 );
-router.put('/:id', verifyToken, userController.updateUser);
-router.delete('/:id', verifyToken, requireRole('admin'), userController.deleteUser);
+router.put('/:id', verifyToken, generalLimiter, userController.updateUser);
+router.delete('/:id', verifyToken, requireRole('admin'), generalLimiter, userController.deleteUser);
 
 module.exports = router;

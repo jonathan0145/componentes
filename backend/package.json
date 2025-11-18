@@ -8,7 +8,8 @@
     "start": "node src/index.js",
     "dev": "set NODE_ENV=development && nodemon src/index.js",
     "dev:cross": "cross-env NODE_ENV=development nodemon src/index.js",
-    "dev:linux": "NODE_ENV=development nodemon src/index.js"
+    "dev:linux": "NODE_ENV=development nodemon src/index.js",
+    "test": "jest --runInBand --detectOpenHandles"
   },
   "keywords": [
     "api",
@@ -23,7 +24,8 @@
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
-    "express": "^5.1.0",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.1.0",
     "express-validator": "^7.2.1",
     "firebase-admin": "^13.5.0",
     "google-auth-library": "^10.3.0",
@@ -32,11 +34,19 @@
     "mysql2": "^3.14.1",
     "nodemailer": "^7.0.9",
     "sequelize": "^6.37.7",
+    "socket.io": "^4.7.5",
+    "sqlite3": "^5.1.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "nodemon": "^2.0.22"
+    "jest": "^29.6.1",
+    "nodemon": "^2.0.22",
+    "socket.io-client": "^4.7.5",
+    "supertest": "^6.3.3"
+  },
+  "jest": {
+    "setupFiles": ["<rootDir>/tests/jest.setup.js"]
   }
 }

@@ -24,6 +24,16 @@ const { body, validationResult } = require('express-validator');
  *               file:
  *                 type: string
  *                 format: binary
+ *               userId:
+ *                 type: string
+ *                 description: ID del usuario que sube el archivo
+ *               messageId:
+ *                 type: integer
+ *                 description: ID del mensaje asociado al archivo
+ *             required:
+ *               - file
+ *               - userId
+ *               - messageId
  *     responses:
  *       201:
  *         description: Archivo subido correctamente
@@ -63,22 +73,14 @@ const express = require('express');
 const fileController = require('../controllers/fileController');
 const router = express.Router();
 const { verifyToken } = require('../middlewares/authMiddleware');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 router.get('/', verifyToken, fileController.getAllFiles);
 router.get('/:id', verifyToken, fileController.getFileById);
-router.post('/',
+router.post('/upload',
 	verifyToken,
-	[
-		body('filename').isString().notEmpty().trim().escape(),
-		body('url').optional().isString().trim()
-	],
-	(req, res, next) => {
-		const errors = validationResult(req);
-		if (!errors.isEmpty()) {
-			return res.status(400).json({ errors: errors.array() });
-		}
-		next();
-	},
+	upload.single('file'),
 	fileController.createFile
 );
 router.put('/:id', verifyToken, fileController.updateFile);

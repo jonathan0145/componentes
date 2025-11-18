@@ -15,6 +15,7 @@ describe('Endpoints de citas', () => {
       .post('/api/appointments')
       .send({ propertyId: 1, userId: 1, date: '2025-10-10T10:00:00Z' })
       .set('Authorization', 'Bearer token_de_prueba');
+    console.log('appointment POST response:', res.statusCode, res.body);
     expect([200, 201, 400]).toContain(res.statusCode);
   });
 });

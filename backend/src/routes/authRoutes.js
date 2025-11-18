@@ -38,6 +38,11 @@
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - password
+ *               - role
  *             properties:
  *               name:
  *                 type: string
@@ -45,6 +50,9 @@
  *                 type: string
  *               password:
  *                 type: string
+ *               role:
+ *                 type: string
+ *                 description: Nombre del rol (Buyer, Seller, Agent)
  *     responses:
  *       201:
  *         description: Usuario registrado
@@ -59,5 +67,7 @@ const router = express.Router();
 router.post('/register', authController.register);
 // Login de usuario
 router.post('/login', authController.login);
+// Refresh token
+router.post('/refresh', authController.refresh);
 
 module.exports = router;

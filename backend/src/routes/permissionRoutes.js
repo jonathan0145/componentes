@@ -29,8 +29,15 @@ const { body, validationResult } = require('express-validator');
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               action:
  *                 type: string
+ *                 example: crear_conversacion
+ *               roleId:
+ *                 type: integer
+ *                 example: 1
+ *               allowed:
+ *                 type: boolean
+ *                 example: true
  *     responses:
  *       201:
  *         description: Permiso creado
@@ -49,7 +56,9 @@ router.post('/',
 	verifyToken,
 	requireRole('admin'),
 	[
-		body('name').isString().notEmpty().trim().escape()
+		body('action').isString().notEmpty().trim().escape(),
+		body('roleId').isInt({ min: 1 }),
+		body('allowed').optional().isBoolean()
 	],
 	(req, res, next) => {
 		const errors = validationResult(req);

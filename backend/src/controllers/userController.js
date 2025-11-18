@@ -1,3 +1,71 @@
+// Obtener perfil del usuario autenticado
+exports.getProfile = async (req, res) => {
+  try {
+    // Aquí va la lógica real de perfil
+    res.json({
+      success: true,
+      data: { id: req.user?.id || 'demo', email: req.user?.email || 'demo@email.com' },
+      message: 'Perfil obtenido (stub)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_003',
+        message: 'Error al obtener perfil',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+// Actualizar perfil del usuario autenticado
+exports.updateProfile = async (req, res) => {
+  try {
+    // Aquí va la lógica real de actualización
+    res.json({
+      success: true,
+      data: req.body,
+      message: 'Perfil actualizado (stub)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_004',
+        message: 'Error al actualizar perfil',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+// Subir avatar del usuario autenticado
+exports.uploadAvatar = async (req, res) => {
+  try {
+    // Aquí va la lógica real de subida de avatar
+    res.json({
+      success: true,
+      data: { avatarUrl: 'https://demo/avatar.png' },
+      message: 'Avatar subido (stub)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_005',
+        message: 'Error al subir avatar',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
 const { User, Role } = require('../models');
 
 exports.getAllUsers = async (req, res) => {
@@ -5,17 +73,45 @@ exports.getAllUsers = async (req, res) => {
     const users = await User.findAll({ include: Role });
     res.json(users);
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener usuarios' });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_001',
+        message: 'Error al obtener usuarios',
+        details: err.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id, { include: Role });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    res.json(user);
+    if (!user) return res.status(404).json({
+      success: false,
+      error: {
+        code: 'USER_001',
+        message: 'Usuario no encontrado'
+      },
+      timestamp: new Date().toISOString()
+    });
+    res.json({
+      success: true,
+      data: user,
+      message: 'Usuario obtenido correctamente',
+      timestamp: new Date().toISOString()
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Error al obtener usuario' });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_002',
+        message: 'Error al obtener usuario',
+        details: err.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -24,26 +120,64 @@ exports.createUser = async (req, res) => {
   try {
     const { email, password, name, roleId } = req.body;
     if (!email || !password || !name || !roleId) {
-      return res.status(400).json({ error: 'Faltan campos obligatorios: email, password, name, roleId' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'Faltan campos obligatorios: email, password, name, roleId'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
-    // Validación de formato de email
     const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Formato de email inválido' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'Formato de email inválido'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
-    // Validación de longitud de password
     if (password.length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'La contraseña debe tener al menos 6 caracteres'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
-    // Validar unicidad de email
     const existe = await User.findOne({ where: { email } });
     if (existe) {
-      return res.status(409).json({ error: 'El email ya está registrado' });
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'USER_002',
+          message: 'El email ya está registrado'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
     const user = await User.create({ email, password, name, roleId });
-    res.status(201).json(user);
+    res.status(201).json({
+      success: true,
+      data: user,
+      message: 'Usuario creado correctamente',
+      timestamp: new Date().toISOString()
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Error al crear usuario', detalle: err.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_003',
+        message: 'Error al crear usuario',
+        details: err.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -51,21 +185,55 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!user) return res.status(404).json({
+      success: false,
+      error: {
+        code: 'USER_001',
+        message: 'Usuario no encontrado'
+      },
+      timestamp: new Date().toISOString()
+    });
     const { email, password, name, roleId } = req.body;
     if (email) {
       const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
       if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: 'Formato de email inválido' });
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_001',
+            message: 'Formato de email inválido'
+          },
+          timestamp: new Date().toISOString()
+        });
       }
     }
     if (password && password.length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_001',
+          message: 'La contraseña debe tener al menos 6 caracteres'
+        },
+        timestamp: new Date().toISOString()
+      });
     }
     await user.update(req.body);
-    res.json(user);
+    res.json({
+      success: true,
+      data: user,
+      message: 'Usuario actualizado correctamente',
+      timestamp: new Date().toISOString()
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Error al actualizar usuario', detalle: err.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_004',
+        message: 'Error al actualizar usuario',
+        details: err.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -73,10 +241,30 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+    if (!user) return res.status(404).json({
+      success: false,
+      error: {
+        code: 'USER_001',
+        message: 'Usuario no encontrado'
+      },
+      timestamp: new Date().toISOString()
+    });
     await user.destroy();
-    res.json({ message: 'Usuario eliminado', id: req.params.id });
+    res.json({
+      success: true,
+      data: { id: req.params.id },
+      message: 'Usuario eliminado correctamente',
+      timestamp: new Date().toISOString()
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Error al eliminar usuario', detalle: err.message });
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'USER_005',
+        message: 'Error al eliminar usuario',
+        details: err.message
+      },
+      timestamp: new Date().toISOString()
+    });
   }
 };

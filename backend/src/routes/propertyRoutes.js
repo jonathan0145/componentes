@@ -48,12 +48,14 @@ const express = require('express');
 const router = express.Router();
 const propertyController = require('../controllers/propertyController');
 const { verifyToken, requireRole } = require('../middlewares/authMiddleware');
+const { generalLimiter } = require('../middlewares/rateLimiters');
 
-router.get('/', propertyController.getAllProperties);
-router.get('/:id', propertyController.getPropertyById);
+router.get('/', generalLimiter, propertyController.getAllProperties);
+router.get('/:id', generalLimiter, propertyController.getPropertyById);
 router.post('/',
 	verifyToken,
 	requireRole('admin'),
+	generalLimiter,
 	[
 		body('title').isString().notEmpty().trim().escape(),
 		body('price').isNumeric().toFloat(),
@@ -68,9 +70,9 @@ router.post('/',
 	},
 	propertyController.createProperty
 );
-router.put('/:id', verifyToken, requireRole('admin'), propertyController.updateProperty);
+router.put('/:id', verifyToken, requireRole('admin'), generalLimiter, propertyController.updateProperty);
 // Cambiar estado de propiedad
-router.post('/:id/status', verifyToken, requireRole('admin'), propertyController.changeStatus);
-router.delete('/:id', verifyToken, requireRole('admin'), propertyController.deleteProperty);
+router.post('/:id/status', verifyToken, requireRole('admin'), generalLimiter, propertyController.changeStatus);
+router.delete('/:id', verifyToken, requireRole('admin'), generalLimiter, propertyController.deleteProperty);
 
 module.exports = router;
