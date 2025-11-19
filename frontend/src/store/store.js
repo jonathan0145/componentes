@@ -1,3 +1,4 @@
+
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import chatReducer from './slices/chatSlice';
@@ -7,6 +8,7 @@ import offersReducer from './slices/offersSlice';
 import agentsReducer from './slices/agentsSlice';
 import appointmentsReducer from './slices/appointmentsSlice';
 import verificationReducer from './slices/verificationSlice';
+import privacyReducer from './slices/privacySlice';
 import { setAuthToken } from '@services/apiClient';
 
 const store = configureStore({
@@ -19,6 +21,7 @@ const store = configureStore({
     agents: agentsReducer,
     appointments: appointmentsReducer,
     verification: verificationReducer,
+    privacy: privacyReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

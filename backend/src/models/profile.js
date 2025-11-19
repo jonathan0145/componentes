@@ -16,6 +16,8 @@ const Profile = sequelize.define('Profile', {
   phone: { type: DataTypes.STRING },
   avatar: { type: DataTypes.STRING },
   preferences: { type: DataTypes.JSON },
+  showContactInfo: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+  receiveEmailNotifications: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
   createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });

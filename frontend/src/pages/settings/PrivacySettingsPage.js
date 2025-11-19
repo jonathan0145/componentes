@@ -27,6 +27,7 @@ import {
 } from 'react-icons/fa';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, updateUserData } from '@store/slices/authSlice';
+import privacyService from '@services/privacyService';
 import { 
   getUserAccessLevel, 
   getAccessLevelLabel, 
@@ -136,10 +137,7 @@ const PrivacySettingsPage = () => {
   const handleSavePrivacySettings = async () => {
     setLoading(true);
     try {
-      // Aquí haríamos la llamada a la API para guardar configuración
-      // Por ahora simulamos y actualizamos el estado local
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await privacyService.savePrivacy(privacySettings);
       dispatch(updateUserData({ privacySettings }));
       toast.success('Configuración de privacidad actualizada');
     } catch (error) {

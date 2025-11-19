@@ -62,6 +62,8 @@ apiV1Router.use('/email', require('./routes/emailRoutes'));
 apiV1Router.use('/push', require('./routes/pushRoutes'));
 apiV1Router.use('/storage', require('./routes/storageRoutes'));
 apiV1Router.use('/auth', require('./routes/authRoutes'));
+// Rutas de privacidad
+apiV1Router.use('/user/privacy', require('./routes/privacyRoutes'));
 app.use('/api/v1', apiV1Router);
 
 // Middleware de manejo de errores

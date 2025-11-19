@@ -12,9 +12,46 @@ import { toast } from 'react-toastify';
 import VerificationBadges from '@components/verification/VerificationBadges';
 import ChangePasswordModal from '@components/user/ChangePasswordModal';
 
+import { fetchPrivacy, savePrivacy, selectPrivacy, selectPrivacyLoading } from '@store/slices/privacySlice';
+
 const ProfilePage = () => {
   const currentUser = useSelector(selectCurrentUser);
   console.log('ProfilePage montado. currentUser:', currentUser);
+  const dispatch = useDispatch();
+
+  // --- PRIVACIDAD ---
+  const privacy = useSelector(selectPrivacy);
+  const privacyLoading = useSelector(selectPrivacyLoading);
+  const [privacyState, setPrivacyState] = useState({
+    showContactInfo: true,
+    receiveEmailNotifications: true
+  });
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      dispatch(fetchPrivacy(currentUser.id));
+    }
+  }, [currentUser?.id, dispatch]);
+
+  useEffect(() => {
+    if (privacy) {
+      setPrivacyState({
+        showContactInfo: !!privacy.showContactInfo,
+        receiveEmailNotifications: !!privacy.receiveEmailNotifications
+      });
+    }
+  }, [privacy]);
+
+  const handlePrivacyChange = (e) => {
+    const { id, checked } = e.target;
+    let key = id === 'showContact' ? 'showContactInfo' : 'receiveEmailNotifications';
+    const newState = { ...privacyState, [key]: checked };
+    setPrivacyState(newState);
+    dispatch(savePrivacy(newState))
+      .unwrap()
+      .then(() => toast.success('Privacidad actualizada'))
+      .catch(() => toast.error('Error al guardar privacidad'));
+  };
     // Estado y lógica para cambio de contraseña
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [passwordLoading, setPasswordLoading] = useState(false);
@@ -55,7 +92,6 @@ const ProfilePage = () => {
       }
     }
   };
-  const dispatch = useDispatch();
   const verifications = useSelector(selectVerifications);
   const verificationLoading = useSelector(selectVerificationLoading);
 
@@ -806,14 +842,16 @@ const ProfilePage = () => {
                       type="checkbox"
                       id="showContact"
                       label="Permitir que otros usuarios vean mi información de contacto"
-                      defaultChecked={true}
+                      checked={privacyState.showContactInfo}
+                      onChange={handlePrivacyChange}
                       className="mb-2"
                     />
                     <Form.Check
                       type="checkbox"
                       id="notifications"
                       label="Recibir notificaciones por email"
-                      defaultChecked={true}
+                      checked={privacyState.receiveEmailNotifications}
+                      onChange={handlePrivacyChange}
                     />
                   </div>
                 </Card.Body>
