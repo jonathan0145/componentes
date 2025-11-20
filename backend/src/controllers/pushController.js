@@ -36,6 +36,7 @@ exports.sendPush = async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    console.error('Error al enviar push:', error);
     res.status(500).json({
       success: false,
       error: {

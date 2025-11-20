@@ -86,6 +86,10 @@ module.exports = (env, argv) => {
       historyApiFallback: true,
       compress: true,
       open: true,
+      static: {
+        directory: path.join(__dirname, 'public'),
+        publicPath: '/',
+      },
     },
     optimization: {
       splitChunks: {

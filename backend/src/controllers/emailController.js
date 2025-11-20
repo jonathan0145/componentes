@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
 // Enviar correo
 exports.sendEmail = async (req, res) => {
   try {
-    const { to, subject, text, html } = req.body;
+    const { to, subject, text, html, senderName, senderEmail } = req.body;
     if (!to || !subject || (!text && !html)) {
       return res.status(400).json({
         success: false,
@@ -23,8 +23,13 @@ exports.sendEmail = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
+    // Personalizar el campo 'from' si se envía senderName y senderEmail
+    let fromField = process.env.EMAIL_USER;
+    if (senderName && senderEmail) {
+      fromField = `"${senderName} (${senderEmail})" <${process.env.EMAIL_USER}>`;
+    }
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: fromField,
       to,
       subject,
       text,

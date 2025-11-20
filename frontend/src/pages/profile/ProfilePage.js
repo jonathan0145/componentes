@@ -867,58 +867,72 @@ const ProfilePage = () => {
                   {/* Push Notifications */}
                   <div className="mb-4">
                     <h6>Notificaciones Push</h6>
-                      <Button
-                        variant="outline-primary"
-                        onClick={async () => {
-                          setPushLoading(true);
-                          setPushError(null);
-                          setPushSuccess(null);
-                          try {
-                            const { requestNotificationPermission, registerServiceWorker, subscribeUserToPush } = await import('../../utils/pushNotifications');
-                            const permission = await requestNotificationPermission();
-                            if (permission === 'granted') {
-                              const reg = await registerServiceWorker();
-                              if (reg) {
-                                const vapidRes = await fetch('/api/push/public-key');
-                                const { publicKey } = await vapidRes.json();
-                                const subscription = await subscribeUserToPush(reg, publicKey);
-                                if (subscription) {
-                                  const res = await fetch('/api/push/subscribe', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ subscription, userId: currentUser.id })
-                                  });
-                                  if (res.ok) {
-                                    setPushSuccess('¡Notificaciones push activadas correctamente!');
-                                    toast.success('¡Notificaciones push activadas correctamente!');
+                    {/* Estado para token FCM */}
+                    {(() => {
+                      const [fcmToken, setFcmToken] = React.useState(null);
+                      React.useEffect(() => {
+                        let mounted = true;
+                        import('../../utils/pushNotifications').then(({ getFcmToken }) => {
+                          getFcmToken().then(token => {
+                            if (mounted) setFcmToken(token);
+                          });
+                        });
+                        return () => { mounted = false; };
+                      }, []);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <Button
+                            variant="outline-primary"
+                            onClick={async () => {
+                              setPushLoading(true);
+                              setPushError(null);
+                              setPushSuccess(null);
+                              try {
+                                const { requestNotificationPermission, registerServiceWorker, getFcmToken } = await import('../../utils/pushNotifications');
+                                const permission = await requestNotificationPermission();
+                                if (permission === 'granted') {
+                                  const reg = await registerServiceWorker();
+                                  if (reg) {
+                                    const token = await getFcmToken();
+                                    if (token) {
+                                      await import('../../services/pushService').then(({ sendPush }) =>
+                                        sendPush({
+                                          token,
+                                          title: '¡Push activado!',
+                                          body: 'Has activado las notificaciones push correctamente.'
+                                        })
+                                      );
+                                      setPushSuccess('¡Notificaciones push activadas correctamente!');
+                                      toast.success('¡Notificaciones push activadas correctamente!');
+                                      setFcmToken(token);
+                                    } else {
+                                      setPushError('No se pudo obtener el token FCM.');
+                                      toast.error('No se pudo obtener el token FCM.');
+                                    }
                                   } else {
-                                    setPushError('Error al registrar la suscripción en el servidor.');
-                                    toast.error('Error al registrar la suscripción en el servidor.');
+                                    setPushError('No se pudo registrar el Service Worker.');
+                                    toast.error('No se pudo registrar el Service Worker.');
                                   }
                                 } else {
-                                  setPushError('No se pudo crear la suscripción push.');
-                                  toast.error('No se pudo crear la suscripción push.');
+                                  setPushError('Permiso denegado o no soportado.');
+                                  toast.error('Permiso denegado o no soportado.');
                                 }
-                              } else {
-                                setPushError('No se pudo registrar el Service Worker.');
-                                toast.error('No se pudo registrar el Service Worker.');
+                              } catch (err) {
+                                setPushError('Error inesperado: ' + err.message);
+                                toast.error('Error inesperado: ' + err.message);
                               }
-                            } else {
-                              setPushError('Permiso denegado o no soportado.');
-                              toast.error('Permiso denegado o no soportado.');
-                            }
-                          } catch (err) {
-                            setPushError('Error inesperado: ' + err.message);
-                            toast.error('Error inesperado: ' + err.message);
-                          }
-                          setPushLoading(false);
-                        }}
-                        disabled={pushLoading}
-                      >
-                        {pushLoading ? 'Activando...' : 'Activar Notificaciones Push'}
-                      </Button>
-                      {pushError && <Alert variant="danger" className="mt-2">{pushError}</Alert>}
-                      {pushSuccess && <Alert variant="success" className="mt-2">{pushSuccess}</Alert>}
+                              setPushLoading(false);
+                            }}
+                            disabled={pushLoading || !!fcmToken}
+                          >
+                            {pushLoading ? 'Activando...' : 'Activar Notificaciones Push'}
+                          </Button>
+                          {!!fcmToken && <span className="text-success">Ya está activada</span>}
+                        </div>
+                      );
+                    })()}
+                    {pushError && <Alert variant="danger" className="mt-2">{pushError}</Alert>}
+                    {pushSuccess && <Alert variant="success" className="mt-2">{pushSuccess}</Alert>}
                   </div>
                   {/* Email Notifications */}
                     <div>
@@ -930,24 +944,25 @@ const ProfilePage = () => {
                         setEmailSuccess(null);
                         const form = e.target;
                         const destinatario = form.elements[0].value;
+                        const asunto = 'Notificación desde la plataforma';
                         const mensaje = form.elements[1].value;
                         try {
-                          const res = await fetch('/api/email/send-notification', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ to: destinatario, message: mensaje, userId: currentUser.id })
-                          });
-                          if (res.ok) {
-                            setEmailSuccess('¡Email enviado correctamente!');
-                            toast.success('¡Email enviado correctamente!');
-                            form.reset();
-                          } else {
-                            setEmailError('Error al enviar el email.');
-                            toast.error('Error al enviar el email.');
-                          }
+                          // Usar el servicio correcto y el body esperado por el backend, incluyendo remitente visible
+                          await import('../../services/emailService').then(({ sendEmail }) =>
+                            sendEmail({
+                              to: destinatario,
+                              subject: asunto,
+                              text: mensaje,
+                              senderName: currentUser.firstName + ' ' + currentUser.lastName,
+                              senderEmail: currentUser.email
+                            })
+                          );
+                          setEmailSuccess('¡Email enviado correctamente!');
+                          toast.success('¡Email enviado correctamente!');
+                          form.reset();
                         } catch (err) {
-                          setEmailError('Error inesperado: ' + err.message);
-                          toast.error('Error inesperado: ' + err.message);
+                          setEmailError('Error al enviar el email.');
+                          toast.error('Error al enviar el email.');
                         }
                         setEmailLoading(false);
                       }}>
