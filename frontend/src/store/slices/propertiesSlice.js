@@ -19,7 +19,7 @@ export const fetchProperty = createAsyncThunk(
   'properties/fetchProperty',
   async (propertyId, { rejectWithValue }) => {
     try {
-      const response = await propertiesService.getProperty(propertyId);
+      const response = await propertiesService.getPropertyById(propertyId);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Error al cargar propiedad');
@@ -90,7 +90,7 @@ const propertiesSlice = createSlice({
       })
       .addCase(fetchProperty.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentProperty = action.payload;
+        state.currentProperty = action.payload?.data || action.payload;
       })
       .addCase(fetchProperty.rejected, (state, action) => {
         state.loading = false;

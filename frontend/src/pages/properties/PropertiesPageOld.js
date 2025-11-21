@@ -70,7 +70,7 @@ const PropertiesPage = () => {
       title: 'Apartamento Moderno en Zona Norte',
       location: 'Bogotá, Zona Norte',
       price: 350000000,
-      type: 'apartment',
+      propertyType: 'apartment',
       bedrooms: 3,
       bathrooms: 2,
       area: 85,
@@ -85,11 +85,11 @@ const PropertiesPage = () => {
       title: 'Casa Familiar con Jardín',
       location: 'Medellín, El Poblado',
       price: 580000000,
-      type: 'house',
+      propertyType: 'house',
       bedrooms: 4,
       bathrooms: 3,
       area: 150,
-      images: ['https://via.placeholder.com/300x200?text=Casa+1'],
+      images: ['/images/ejemplo-casa1.jpg'],
       description: 'Casa familiar perfecta, con amplio jardín y zona de BBQ.',
       seller: { name: 'Carlos Rodríguez', phone: '+57 301 987 6543' },
       status: 'active',
@@ -100,11 +100,11 @@ const PropertiesPage = () => {
       title: 'Oficina Ejecutiva Centro',
       location: 'Bogotá, Centro',
       price: 420000000,
-      type: 'office',
+      propertyType: 'office',
       bedrooms: 0,
       bathrooms: 1,
       area: 45,
-      images: ['https://via.placeholder.com/300x200?text=Oficina+1'],
+      images: ['/images/ejemplo-oficina1.jpg'],
       description: 'Oficina moderna en edificio empresarial, excelente ubicación.',
       seller: { name: 'Ana Martínez', phone: '+57 302 555 7890' },
       status: 'active',
@@ -115,7 +115,7 @@ const PropertiesPage = () => {
       title: 'Apartamento Vista al Mar',
       location: 'Cartagena, Bocagrande',
       price: 650000000,
-      type: 'apartment',
+      propertyType: 'apartment',
       bedrooms: 2,
       bathrooms: 2,
       area: 90,
@@ -137,9 +137,9 @@ const PropertiesPage = () => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price);
-  };
 
-  const getPropertyTypeLabel = (type) => {
+
+  const getPropertyTypeLabel = (propertyType) => {
     const types = {
       apartment: 'Apartamento',
       house: 'Casa',
@@ -147,7 +147,7 @@ const PropertiesPage = () => {
       office: 'Oficina',
       land: 'Terreno'
     };
-    return types[type] || type;
+    return types[propertyType] || propertyType;
   };
 
   const handleFilterChange = (e) => {
@@ -221,8 +221,55 @@ const PropertiesPage = () => {
 
   const handleStartChat = () => {
     if (selectedProperty) {
-      // Crear nueva conversación o ir a chat existente
-      navigate(`/chat?property=${selectedProperty.id}&seller=${selectedProperty.seller.id}`);
+      // Crear una conversación temporal para ir al chat
+      const property = selectedProperty;
+      const conversation = {
+        id: `property-${property.id}-${Date.now()}`,
+        property: {
+          id: property.id,
+          title: property.title,
+          location: property.location,
+          price: property.price,
+          image: property.images[0]
+        },
+        participants: [
+          {
+            id: currentUser.id,
+            name: currentUser.name || currentUser.email,
+            role: currentUser.role || 'buyer'
+          },
+          {
+            id: `seller-${property.id}`,
+            name: property.seller.name,
+            role: 'seller'
+          }
+        ],
+        lastMessage: {
+          text: `Hola, me interesa esta propiedad: ${property.title}`,
+          timestamp: new Date(),
+          sender: currentUser
+        },
+        unreadCount: 0
+      };
+
+      // Almacenar la conversación en localStorage para que el chat la pueda usar
+      const existingConversations = JSON.parse(localStorage.getItem('conversations') || '[]');
+      const existingIndex = existingConversations.findIndex(conv => 
+        conv.property?.id === property.id && 
+        conv.participants.some(p => p.id === currentUser.id)
+      );
+
+      if (existingIndex >= 0) {
+        // Si ya existe una conversación para esta propiedad, usarla
+        navigate(`/chat?conversation=${existingConversations[existingIndex].id}`);
+      } else {
+        // Crear nueva conversación
+        existingConversations.push(conversation);
+        localStorage.setItem('conversations', JSON.stringify(existingConversations));
+        navigate(`/chat?conversation=${conversation.id}`);
+      }
+
+      toast.success(`Iniciando conversación con ${property.seller.name}`);
       setShowContactModal(false);
     }
   };
@@ -237,54 +284,6 @@ const PropertiesPage = () => {
     setSearchParams(params);
   };
 
-    // Crear una conversación temporal para ir al chat
-    const conversation = {
-      id: `property-${property.id}-${Date.now()}`,
-      property: {
-        id: property.id,
-        title: property.title,
-        location: property.location,
-        price: property.price,
-        image: property.images[0]
-      },
-      participants: [
-        {
-          id: currentUser.id,
-          name: currentUser.name || currentUser.email,
-          role: currentUser.role || 'buyer'
-        },
-        {
-          id: `seller-${property.id}`,
-          name: property.seller.name,
-          role: 'seller'
-        }
-      ],
-      lastMessage: {
-        text: `Hola, me interesa esta propiedad: ${property.title}`,
-        timestamp: new Date(),
-        sender: currentUser
-      },
-      unreadCount: 0
-    };
-
-    // Almacenar la conversación en localStorage para que el chat la pueda usar
-    const existingConversations = JSON.parse(localStorage.getItem('conversations') || '[]');
-    const existingIndex = existingConversations.findIndex(conv => 
-      conv.property?.id === property.id && 
-      conv.participants.some(p => p.id === currentUser.id)
-    );
-
-    if (existingIndex >= 0) {
-      // Si ya existe una conversación para esta propiedad, usarla
-      navigate(`/chat?conversation=${existingConversations[existingIndex].id}`);
-    } else {
-      // Crear nueva conversación
-      existingConversations.push(conversation);
-      localStorage.setItem('conversations', JSON.stringify(existingConversations));
-      navigate(`/chat?conversation=${conversation.id}`);
-    }
-
-    toast.success(`Iniciando conversación con ${property.seller.name}`);
   };
 
   const applyFilters = () => {
@@ -298,7 +297,7 @@ const PropertiesPage = () => {
     }
 
     if (filters.propertyType) {
-      filtered = filtered.filter(property => property.type === filters.propertyType);
+      filtered = filtered.filter(property => property.propertyType === filters.propertyType);
     }
 
     if (filters.priceMin) {
@@ -479,7 +478,7 @@ const PropertiesPage = () => {
               <Card.Body className="d-flex flex-column">
                 <div className="mb-2">
                   <Badge bg="info" className="me-2">
-                    {getPropertyTypeLabel(property.type)}
+                    {getPropertyTypeLabel(property.propertyType)}
                   </Badge>
                   <h6 className="card-title">{property.title}</h6>
                 </div>
@@ -532,6 +531,13 @@ const PropertiesPage = () => {
                       onClick={() => navigate(`/properties/${property.id}`)}
                     >
                       Ver Detalles
+                    </Button>
+                    <Button
+                      variant="outline-warning"
+                      size="sm"
+                      onClick={() => navigate(`/properties/${property.id}/edit`)}
+                    >
+                      Editar
                     </Button>
                   </div>
                 </div>

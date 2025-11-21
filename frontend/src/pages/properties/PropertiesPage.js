@@ -127,7 +127,7 @@ const PropertiesPage = () => {
       bedrooms: 2,
       bathrooms: 2,
       area: 90,
-      images: ['https://via.placeholder.com/300x200?text=Apartamento+Vista+Mar'],
+      images: ['/images/ejemplo-apartamento.jpg'],
       description: 'Increíble vista al mar, totalmente amoblado y listo para vivir.',
       seller: { id: 4, name: 'Roberto Silva', phone: '+57 315 444 2233' },
       status: 'active',

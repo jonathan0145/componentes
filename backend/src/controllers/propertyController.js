@@ -66,7 +66,14 @@ exports.getPropertyById = async (req, res) => {
 
 exports.createProperty = async (req, res) => {
   try {
-    const { title, description, price, address, sellerId } = req.body;
+    const {
+      title, description, price, address, sellerId,
+      city, state, postalCode, location,
+      propertyType, status,
+      features = {},
+      images,
+    } = req.body;
+
     if (!title || !price || !address || !sellerId) {
       return res.status(400).json({
         success: false,
@@ -97,7 +104,43 @@ exports.createProperty = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    const property = await Property.create({ title, description, price, address, sellerId });
+
+    // Extraer features planos
+    const {
+      furnished, petFriendly, elevator, balcony, garden, pool, gym, security,
+      airConditioning, heating, internet, laundry, bedrooms, bathrooms, area, parkingSpaces
+    } = features;
+
+    const property = await Property.create({
+      title,
+      description,
+      price,
+      address,
+      sellerId,
+      city,
+      state,
+      postalCode,
+      location,
+      propertyType,
+      status,
+      furnished,
+      petFriendly,
+      elevator,
+      balcony,
+      garden,
+      pool,
+      gym,
+      security,
+      airConditioning,
+      heating,
+      internet,
+      laundry,
+      bedrooms,
+      bathrooms,
+      area,
+      parkingSpaces,
+      images
+    });
     res.status(201).json({
       success: true,
       data: property,

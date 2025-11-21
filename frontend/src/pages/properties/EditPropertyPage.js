@@ -1,21 +1,25 @@
-import propertiesService from '@services/propertiesService';
-import React, { useState } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert, Modal } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '@store/slices/authSlice';
+import propertiesService from '@services/propertiesService';
+import { Container, Row, Col, Card, Form, Button, Alert, Modal, Spinner } from 'react-bootstrap';
 import { FaHome, FaUpload, FaTrash, FaEye } from 'react-icons/fa';
-
 import { toast } from 'react-toastify';
 import { uploadImageToCloudinary } from '../../utils/uploadImage';
 
-const CreatePropertyPage = () => {
+const EditPropertyPage = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const currentUser = useSelector(selectCurrentUser);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-
+  const [validated, setValidated] = useState(false);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [initialImages, setInitialImages] = useState([]);
+  const [property, setProperty] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -47,34 +51,85 @@ const CreatePropertyPage = () => {
     },
     images: [],
     contactInfo: {
-      phone: currentUser?.phone || '',
-      email: currentUser?.email || '',
+      phone: '',
+      email: '',
       showPhone: true,
       showEmail: true
     }
   });
 
-  const [validated, setValidated] = useState(false);
-  const [imageFiles, setImageFiles] = useState([]);
+  useEffect(() => {
+    const fetchProperty = async () => {
+      try {
+        const res = await propertiesService.getPropertyById(id);
+        const prop = res.data?.data || res.data;
+        setProperty(prop);
+        // Mapear datos a formData
+        setFormData({
+          title: prop.title || '',
+          description: prop.description || '',
+          price: prop.price || '',
+          location: prop.location || '',
+          city: prop.city || '',
+          address: prop.address || '',
+          propertyType: prop.propertyType || 'apartment',
+          bedrooms: prop.bedrooms || 1,
+          bathrooms: prop.bathrooms || 1,
+          area: prop.area || '',
+          parkingSpaces: prop.parkingSpaces || 0,
+          floor: prop.floor || '',
+          totalFloors: prop.totalFloors || '',
+          yearBuilt: prop.yearBuilt || '',
+          features: {
+            furnished: prop.furnished || false,
+            petFriendly: prop.petFriendly || false,
+            elevator: prop.elevator || false,
+            balcony: prop.balcony || false,
+            garden: prop.garden || false,
+            pool: prop.pool || false,
+            gym: prop.gym || false,
+            security: prop.security || false,
+            airConditioning: prop.airConditioning || false,
+            heating: prop.heating || false,
+            internet: prop.internet || false,
+            laundry: prop.laundry || false
+          },
+          images: Array.isArray(prop.images) ? prop.images : [],
+          contactInfo: {
+            phone: prop.seller?.phone || '',
+            email: prop.seller?.email || '',
+            showPhone: true,
+            showEmail: true
+          }
+        });
+        setInitialImages(Array.isArray(prop.images) ? prop.images : []);
+      } catch (err) {
+        toast.error('No se pudo cargar la propiedad');
+        navigate('/properties');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperty();
+    // eslint-disable-next-line
+  }, [id]);
 
-  // Verificar que el usuario sea vendedor
-  if (currentUser?.role !== 'seller') {
+  if (loading) {
     return (
-      <Container className="py-5">
-        <Alert variant="warning">
-          <h5>Acceso Restringido</h5>
-          <p>Solo los vendedores pueden publicar propiedades.</p>
-          <Button variant="primary" onClick={() => navigate('/properties')}>
-            Ver Propiedades
-          </Button>
-        </Alert>
+      <Container className="py-5 text-center">
+        <Spinner animation="border" variant="primary" />
+        <p className="mt-3">Cargando propiedad...</p>
       </Container>
     );
   }
 
+  if (!property) {
+    return null;
+  }
+
+  // Adaptar handlers igual que en CreatePropertyPage
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData(prev => ({
@@ -104,31 +159,22 @@ const CreatePropertyPage = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    
-    if (files.length + imageFiles.length > 10) {
+    if (files.length + formData.images.length > 10) {
       toast.error('Máximo 10 imágenes permitidas');
       return;
     }
-
-    // Validar tipo de archivo
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const invalidFiles = files.filter(file => !validTypes.includes(file.type));
-    
     if (invalidFiles.length > 0) {
       toast.error('Solo se permiten archivos de imagen (JPG, PNG, WebP)');
       return;
     }
-
-    // Validar tamaño (máximo 20MB por imagen)
     const oversizedFiles = files.filter(file => file.size > 20 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
       toast.error('Cada imagen debe ser menor a 20MB');
       return;
     }
-
     setImageFiles(prev => [...prev, ...files]);
-
-    // Crear URLs de preview
     files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -152,37 +198,33 @@ const CreatePropertyPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget;
-
     if (form.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
       return;
     }
-
-    if (imageFiles.length === 0) {
-      toast.error('Debes subir al menos una imagen');
-      return;
-    }
-
-    setLoading(true);
-
+    setSaving(true);
     try {
-      // Subir imágenes a Cloudinary y obtener URLs
-      const urls = [];
-      for (const file of imageFiles) {
-        const url = await uploadImageToCloudinary(file);
-        urls.push(url);
+      // Subir nuevas imágenes a Cloudinary
+      let urls = [];
+      if (imageFiles.length > 0) {
+        for (const file of imageFiles) {
+          const url = await uploadImageToCloudinary(file);
+          urls.push(url);
+        }
       }
-
-      // Incluir todos los features del formulario
+      // Mantener imágenes originales + nuevas
+      const allImages = [
+        ...formData.images.filter(img => typeof img === 'string' && img.startsWith('http')), // ya subidas
+        ...urls
+      ];
+      // Features y campos numéricos
       const allFeatures = { ...formData.features };
-      // Además, incluir los campos numéricos principales
       allFeatures.bedrooms = Number(formData.bedrooms);
       allFeatures.bathrooms = Number(formData.bathrooms);
       allFeatures.area = Number(formData.area);
       allFeatures.parkingSpaces = Number(formData.parkingSpaces);
-
-      // Adaptar el objeto según la documentación y agregar location
+      // Adaptar objeto para update
       const dataToSend = {
         title: formData.title,
         description: formData.description,
@@ -193,25 +235,19 @@ const CreatePropertyPage = () => {
         state: formData.state || '',
         postalCode: formData.postalCode || '',
         propertyType: formData.propertyType,
-        status: 'active',
+        status: property.status || 'active',
         features: allFeatures,
-        images: urls.map((url, idx) => ({
-          url,
-          caption: '',
-          isPrimary: idx === 0
-        })),
-        sellerId: currentUser.id
+        images: allImages,
+        sellerId: property.sellerId
       };
-
-      await propertiesService.createProperty(dataToSend);
-
-      toast.success('Propiedad publicada exitosamente');
-      navigate('/properties');
+      await propertiesService.updateProperty(property.id, dataToSend);
+      toast.success('Propiedad actualizada exitosamente');
+      navigate(`/properties/${property.id}`);
     } catch (error) {
-      const msg = error?.response?.data?.error?.message || error?.response?.data?.message || error.message || 'Error al publicar la propiedad';
+      const msg = error?.response?.data?.error?.message || error?.response?.data?.message || error.message || 'Error al actualizar la propiedad';
       toast.error(msg);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -254,14 +290,13 @@ const CreatePropertyPage = () => {
     <Container fluid className="py-4">
       <Row>
         <Col lg={8} className="mx-auto">
-          {/* Header */}
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
               <h2>
                 <FaHome className="me-2 text-primary" />
-                Publicar Nueva Propiedad
+                Editar Propiedad
               </h2>
-              <p className="text-muted">Completa todos los campos para publicar tu propiedad</p>
+              <p className="text-muted">Modifica los campos y guarda los cambios</p>
             </div>
             <div className="d-flex gap-2">
               <Button
@@ -272,7 +307,7 @@ const CreatePropertyPage = () => {
                 <FaEye className="me-1" />
                 Vista Previa
               </Button>
-              <Button variant="outline-primary" onClick={() => navigate('/properties')}>
+              <Button variant="outline-primary" onClick={() => navigate(`/properties/${property.id}`)}>
                 Cancelar
               </Button>
             </div>
@@ -489,7 +524,6 @@ const CreatePropertyPage = () => {
                       </Col>
                     </>
                   )}
-                  
                   <Col md={3}>
                     <Form.Group className="mb-3">
                       <Form.Label>Parqueaderos</Form.Label>
@@ -505,7 +539,6 @@ const CreatePropertyPage = () => {
                       </Form.Select>
                     </Form.Group>
                   </Col>
-
                   {formData.propertyType === 'apartment' && (
                     <>
                       <Col md={3}>
@@ -524,7 +557,6 @@ const CreatePropertyPage = () => {
                     </>
                   )}
                 </Row>
-
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
@@ -541,8 +573,6 @@ const CreatePropertyPage = () => {
                     </Form.Group>
                   </Col>
                 </Row>
-
-                {/* Características adicionales */}
                 <div className="mb-3">
                   <Form.Label className="mb-3">Características Adicionales</Form.Label>
                   <Row>
@@ -577,18 +607,17 @@ const CreatePropertyPage = () => {
                     onChange={handleImageUpload}
                     className="mb-2"
                   />
-                    <Form.Text className="text-muted">
-                      Máximo 10 imágenes. Formatos: JPG, PNG, WebP. Tamaño máximo: 20MB por imagen.
+                  <Form.Text className="text-muted">
+                    Máximo 10 imágenes. Formatos: JPG, PNG, WebP. Tamaño máximo: 20MB por imagen.
                   </Form.Text>
                 </Form.Group>
-
                 {formData.images.length > 0 && (
                   <Row>
                     {formData.images.map((image, index) => (
                       <Col md={3} sm={4} key={index} className="mb-3">
                         <div className="position-relative">
                           <img
-                            src={image}
+                            src={typeof image === 'string' ? image : image.url}
                             alt={`Preview ${index + 1}`}
                             className="img-fluid rounded"
                             style={{ height: '150px', width: '100%', objectFit: 'cover' }}
@@ -667,13 +696,12 @@ const CreatePropertyPage = () => {
 
             {/* Botones de acción */}
             <div className="d-flex justify-content-between align-items-center">
-              <Button variant="outline-secondary" onClick={() => navigate('/properties')}>
+              <Button variant="outline-primary" onClick={() => navigate(`/properties/${property.id}`)}>
                 Cancelar
               </Button>
-              
               <div className="d-flex gap-2">
                 <Button
-                  variant="outline-primary"
+                  variant="outline-secondary"
                   onClick={() => setShowPreview(true)}
                   disabled={!formData.title}
                 >
@@ -683,17 +711,17 @@ const CreatePropertyPage = () => {
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={loading}
+                  disabled={saving}
                 >
-                  {loading ? (
+                  {saving ? (
                     <>
                       <span className="spinner-border spinner-border-sm me-2" />
-                      Publicando...
+                      Guardando...
                     </>
                   ) : (
                     <>
                       <FaUpload className="me-1" />
-                      Publicar Propiedad
+                      Guardar Cambios
                     </>
                   )}
                 </Button>
@@ -711,7 +739,7 @@ const CreatePropertyPage = () => {
         <Modal.Body>
           {formData.images.length > 0 && (
             <img
-              src={formData.images[0]}
+              src={typeof formData.images[0] === 'string' ? formData.images[0] : formData.images[0]?.url}
               alt="Preview"
               className="img-fluid rounded mb-3"
               style={{ width: '100%', height: '300px', objectFit: 'cover' }}
@@ -720,7 +748,6 @@ const CreatePropertyPage = () => {
           <h4>{formData.title}</h4>
           <p className="text-muted">{formData.location}, {formData.city}</p>
           <h5 className="text-success">{formatPrice(formData.price)}</h5>
-          
           <div className="d-flex gap-3 mb-3">
             {formData.propertyType !== 'land' && formData.bedrooms > 0 && (
               <span><strong>{formData.bedrooms}</strong> habitaciones</span>
@@ -731,9 +758,7 @@ const CreatePropertyPage = () => {
               <span><strong>{formData.parkingSpaces}</strong> parqueaderos</span>
             )}
           </div>
-          
           <p>{formData.description}</p>
-          
           {Object.values(formData.features).some(Boolean) && (
             <div>
               <h6>Características:</h6>
@@ -755,4 +780,4 @@ const CreatePropertyPage = () => {
   );
 };
 
-export default CreatePropertyPage;
+export default EditPropertyPage;

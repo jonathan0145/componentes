@@ -9,6 +9,7 @@ import ChatPage from '@pages/chat/ChatPage';
 import PropertiesPage from '@pages/properties/PropertiesPage';
 import CreatePropertyPage from '@pages/properties/CreatePropertyPage';
 import PropertyDetailPage from '@pages/properties/PropertyDetailPage';
+import EditPropertyPage from '@pages/properties/EditPropertyPage';
 import ProfilePage from '@pages/profile/ProfilePage';
 import OffersPage from '@pages/offers/OffersPage';
 import AgentsPage from '@pages/agents/AgentsPage';
@@ -30,6 +31,7 @@ function App() {
         <Route path="/properties" element={<PropertiesPage />} />
         <Route path="/properties/new" element={<CreatePropertyPage />} />
         <Route path="/properties/:id" element={<PropertyDetailPage />} />
+        <Route path="/properties/:id/edit" element={<EditPropertyPage />} />
         <Route path="/offers" element={<OffersPage />} />
         <Route path="/agents" element={<AgentsPage />} />
         <Route path="/appointments" element={<AppointmentsPage />} />

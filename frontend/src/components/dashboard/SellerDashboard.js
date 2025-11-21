@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import propertiesService from '../../services/propertiesService';
 import { Container, Row, Col, Card, Button, Badge, Table, ProgressBar, Alert } from 'react-bootstrap';
 import { FaHome, FaEye, FaComments, FaDollarSign, FaPlus, FaEdit, FaChartLine } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -13,98 +14,48 @@ const SellerDashboard = ({ user }) => {
   const [analytics, setAnalytics] = useState({});
 
   useEffect(() => {
-    // Simular carga de datos del vendedor
-    setMyProperties([
-      {
-        id: 1,
-        title: 'Apartamento Moderno Zona Norte',
-        price: 350000000,
-        location: 'Bogotá, Zona Norte',
-        image: 'https://via.placeholder.com/300x200?text=Apt1',
-        status: 'active',
-        views: 45,
-        inquiries: 8,
-        publishedDate: new Date(Date.now() - 604800000) // Hace 1 semana
-      },
-      {
-        id: 2,
-        title: 'Casa Familiar con Jardín',
-        price: 580000000,
-        location: 'Medellín, El Poblado',
-        image: 'https://via.placeholder.com/300x200?text=Casa1',
-        status: 'active',
-        views: 67,
-        inquiries: 12,
-        publishedDate: new Date(Date.now() - 1209600000) // Hace 2 semanas
-      },
-      {
-        id: 3,
-        title: 'Estudio Universitario',
-        price: 180000000,
-        location: 'Bogotá, Zona Rosa',
-        image: 'https://via.placeholder.com/300x200?text=Studio1',
-        status: 'sold',
-        views: 23,
-        inquiries: 5,
-        publishedDate: new Date(Date.now() - 2592000000) // Hace 1 mes
-      }
-    ]);
+    // Cargar propiedades reales del vendedor
+    const fetchData = async () => {
+      try {
+        if (!user?.id) return;
+        // Obtener propiedades del vendedor
+        const res = await propertiesService.getProperties({ sellerId: user.id });
+        const properties = res.data?.data || res.data || [];
+        setMyProperties(properties);
 
-    setInquiries([
-      {
-        id: 1,
-        propertyTitle: 'Apartamento Moderno Zona Norte',
-        buyerName: 'Ana García',
-        message: '¿Podríamos agendar una visita para este fin de semana?',
-        time: new Date(Date.now() - 1800000), // Hace 30 min
-        status: 'unread'
-      },
-      {
-        id: 2,
-        propertyTitle: 'Casa Familiar con Jardín',
-        buyerName: 'Luis Martínez',
-        message: '¿El precio incluye los muebles de la cocina?',
-        time: new Date(Date.now() - 3600000), // Hace 1 hora
-        status: 'read'
-      },
-      {
-        id: 3,
-        propertyTitle: 'Apartamento Moderno Zona Norte',
-        buyerName: 'Carmen Pérez',
-        message: 'Me interesa mucho esta propiedad. ¿Acepta financiamiento?',
-        time: new Date(Date.now() - 7200000), // Hace 2 horas
-        status: 'replied'
-      }
-    ]);
+        // Calcular analíticas básicas
+        let totalViews = 0;
+        let totalInquiries = 0;
+        let soldCount = 0;
+        let totalDays = 0;
+        properties.forEach(p => {
+          totalViews += p.views || 0;
+          totalInquiries += p.inquiries || 0;
+          if (p.status === 'sold') soldCount++;
+          if (p.createdAt) {
+            const days = (Date.now() - new Date(p.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+            totalDays += days;
+          }
+        });
+        setAnalytics({
+          totalViews,
+          totalInquiries,
+          conversionRate: properties.length ? Math.round((soldCount / properties.length) * 100) : 0,
+          averageTimeOnMarket: properties.length ? Math.round(totalDays / properties.length) : 0
+        });
 
-    setOffers([
-      {
-        id: 1,
-        propertyTitle: 'Casa Familiar con Jardín',
-        buyerName: 'Roberto Silva',
-        offerAmount: 540000000,
-        originalPrice: 580000000,
-        status: 'pending',
-        time: new Date(Date.now() - 86400000) // Ayer
-      },
-      {
-        id: 2,
-        propertyTitle: 'Apartamento Moderno Zona Norte',
-        buyerName: 'María López',
-        offerAmount: 330000000,
-        originalPrice: 350000000,
-        status: 'rejected',
-        time: new Date(Date.now() - 172800000) // Hace 2 días
+        // TODO: Cargar consultas y ofertas reales (requiere endpoints específicos)
+        setInquiries([]);
+        setOffers([]);
+      } catch (err) {
+        setMyProperties([]);
+        setAnalytics({ totalViews: 0, totalInquiries: 0, conversionRate: 0, averageTimeOnMarket: 0 });
+        setInquiries([]);
+        setOffers([]);
       }
-    ]);
-
-    setAnalytics({
-      totalViews: 135,
-      totalInquiries: 25,
-      conversionRate: 18.5,
-      averageTimeOnMarket: 15
-    });
-  }, []);
+    };
+    fetchData();
+  }, [user]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-CO', {
@@ -271,10 +222,18 @@ const SellerDashboard = ({ user }) => {
                         </td>
                         <td>
                           <div className="d-flex gap-1">
-                            <Button variant="outline-primary" size="sm">
+                            <Button 
+                              variant="outline-primary" 
+                              size="sm" 
+                              onClick={() => navigate(`/properties/${property.id}/edit`)}
+                            >
                               <FaEdit />
                             </Button>
-                            <Button variant="outline-success" size="sm">
+                            <Button 
+                              variant="outline-success" 
+                              size="sm" 
+                              onClick={() => navigate(`/properties/${property.id}`)}
+                            >
                               <FaEye />
                             </Button>
                           </div>
