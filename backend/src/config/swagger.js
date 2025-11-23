@@ -10,7 +10,7 @@ const options = {
       description: 'Documentación de la API según 05-api-documentacion.md'
     },
     servers: [
-      { url: 'http://localhost:3000' }
+  { url: 'http://192.168.20.82:3000' }
     ],
     components: {
       securitySchemes: {

@@ -71,7 +71,7 @@ module.exports = (env, argv) => {
       new webpack.DefinePlugin({
         'process.env': {
           'NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
-          'REACT_APP_API_URL': JSON.stringify(process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1')
+          'REACT_APP_API_URL': JSON.stringify(process.env.REACT_APP_API_URL || 'http://192.168.20.82:3000/api/v1')
         }
       }),
       ...(isProduction ? [
@@ -86,6 +86,10 @@ module.exports = (env, argv) => {
       historyApiFallback: true,
       compress: true,
       open: true,
+      static: {
+        directory: path.join(__dirname, 'public'),
+        publicPath: '/',
+      },
     },
     optimization: {
       splitChunks: {

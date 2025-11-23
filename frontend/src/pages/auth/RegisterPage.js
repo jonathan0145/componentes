@@ -99,12 +99,11 @@ const RegisterPage = () => {
 
     try {
       const userData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
-        role: formData.role,
+        role: formData.role.charAt(0).toUpperCase() + formData.role.slice(1).toLowerCase(),
       };
 
       // Agregar campos específicos según el rol

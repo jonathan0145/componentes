@@ -1,43 +1,106 @@
+import authService from '@services/authService';
 import { FaPhone, FaMapMarkerAlt, FaEdit, FaHeart, FaBriefcase } from 'react-icons/fa';
+
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Badge, Modal, Alert, Tab, Tabs } from 'react-bootstrap';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser } from '@store/slices/authSlice';
 import { updateProfile } from '@store/slices/authSlice';
-import { selectVerifications } from '@store/slices/verificationSlice';
+import { selectVerifications, selectVerificationLoading, sendEmailVerification, verifyCode, syncEmailVerificationStatus } from '@store/slices/verificationSlice';
 import AgentAnalyticsDashboard from '@components/agents/AgentAnalyticsDashboard';
 import { toast } from 'react-toastify';
 import VerificationBadges from '@components/verification/VerificationBadges';
+import ChangePasswordModal from '@components/user/ChangePasswordModal';
+
+import { fetchPrivacy, savePrivacy, selectPrivacy, selectPrivacyLoading } from '@store/slices/privacySlice';
 
 const ProfilePage = () => {
-  // Sincronización y actualización de indicadores/notificaciones
-  useEffect(() => {
-    // 1. Sincronizar datos del usuario (simulación: recargar datos si cambia el id)
-    // Aquí podrías hacer un dispatch para refrescar datos desde el backend si lo necesitas
-    // dispatch(fetchCurrentUser(currentUser.id));
-
-    // 2. Actualizar indicadores visuales (ejemplo: badge de verificación)
-    // Si el usuario se verifica, mostrar toast
-    if (currentUser.isVerified) {
-      toast.info('¡Tu cuenta está verificada!');
-    }
-
-    // 3. Notificaciones automáticas (simulación)
-    // Si hay nuevas notificaciones, mostrar toast
-    // if (currentUser.notifications && currentUser.notifications.length > 0) {
-    //   toast.info(`Tienes ${currentUser.notifications.length} nuevas notificaciones.`);
-    // }
-
-    // 4. Validaciones y controles (ejemplo: límite de propiedades guardadas)
-    if (savedProperties.length > 100) {
-      toast.warn('Has alcanzado el límite de propiedades guardadas.');
-    }
-    // 5. Auditoría (simulación: log de acceso)
-    // console.log('Acceso a perfil de usuario:', currentUser.id);
-  }, [currentUser, savedProperties]);
-  const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
+  console.log('ProfilePage montado. currentUser:', currentUser);
+  const dispatch = useDispatch();
+
+  // --- PRIVACIDAD ---
+  const privacy = useSelector(selectPrivacy);
+  const privacyLoading = useSelector(selectPrivacyLoading);
+  const [privacyState, setPrivacyState] = useState({
+    showContactInfo: true,
+    receiveEmailNotifications: true
+  });
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      dispatch(fetchPrivacy(currentUser.id));
+    }
+  }, [currentUser?.id, dispatch]);
+
+  useEffect(() => {
+    if (privacy) {
+      setPrivacyState({
+        showContactInfo: !!privacy.showContactInfo,
+        receiveEmailNotifications: !!privacy.receiveEmailNotifications
+      });
+    }
+  }, [privacy]);
+
+  const handlePrivacyChange = (e) => {
+    const { id, checked } = e.target;
+    let key = id === 'showContact' ? 'showContactInfo' : 'receiveEmailNotifications';
+    const newState = { ...privacyState, [key]: checked };
+    setPrivacyState(newState);
+    dispatch(savePrivacy(newState))
+      .unwrap()
+      .then(() => toast.success('Privacidad actualizada'))
+      .catch(() => toast.error('Error al guardar privacidad'));
+  };
+    // Estado y lógica para cambio de contraseña
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordLoading, setPasswordLoading] = useState(false);
+    const handleChangePassword = async ({ currentPassword, newPassword }) => {
+      setPasswordLoading(true);
+      try {
+        await authService.changePassword(currentPassword, newPassword);
+        toast.success('Contraseña actualizada correctamente');
+        setShowPasswordModal(false);
+      } catch (err) {
+        toast.error(err?.response?.data?.message || 'Error al cambiar la contraseña');
+      }
+      setPasswordLoading(false);
+    };
+
+  // Estado para previsualizar el avatar seleccionado
+  const [avatarPreview, setAvatarPreview] = useState('/default-avatar.png');
+
+  useEffect(() => {
+    if (currentUser) {
+      setAvatarPreview(currentUser.avatarUrl || currentUser.avatar || '/default-avatar.png');
+    }
+  }, [currentUser]);
+
+  // Handler para subir avatar
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarPreview(URL.createObjectURL(file));
+      try {
+        const response = await authService.uploadAvatar(file);
+        if (response.data?.data?.avatarUrl) {
+          setFormData((prev) => ({ ...prev, avatar: response.data.data.avatarUrl }));
+          toast.success('Avatar actualizado');
+        }
+      } catch (err) {
+        toast.error('Error al subir avatar');
+      }
+    }
+  };
   const verifications = useSelector(selectVerifications);
+  const verificationLoading = useSelector(selectVerificationLoading);
+
+  // Estado para modal de verificación de email
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailCode, setEmailCode] = useState('');
+
+
+  // Estados antes del useEffect
   const [loading, setLoading] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
@@ -65,6 +128,79 @@ const ProfilePage = () => {
     }
   });
 
+  // Sincronizar formData cuando currentUser cambie (tras editar perfil)
+  useEffect(() => {
+    setFormData({
+      firstName: currentUser?.firstName || '',
+      lastName: currentUser?.lastName || '',
+      email: currentUser?.email || '',
+      phone: currentUser?.phone || '',
+      avatar: currentUser?.avatar || '',
+      preferences: {
+        location: currentUser?.preferences?.location || '',
+        priceRange: {
+          min: currentUser?.preferences?.priceRange?.min || '',
+          max: currentUser?.preferences?.priceRange?.max || ''
+        },
+        propertyType: currentUser?.preferences?.propertyType || '',
+        bedrooms: currentUser?.preferences?.bedrooms || '',
+        bathrooms: currentUser?.preferences?.bathrooms || ''
+      },
+      professional: currentUser?.professional || {
+        licenseNumber: '',
+        agency: '',
+        experience: '',
+        specialization: '',
+        coverageArea: ''
+      }
+    });
+    // Sincronizar badge de verificación de email tras login
+    if (currentUser && typeof currentUser.emailVerified !== 'undefined') {
+      // Convertir a booleano para soportar 1/0 o true/false
+      const isVerified = currentUser.emailVerified === true || currentUser.emailVerified === 1;
+      console.log('Valor de currentUser.emailVerified:', currentUser.emailVerified, 'Interpretado como:', isVerified);
+      dispatch(syncEmailVerificationStatus(isVerified));
+      setTimeout(() => {
+        // Mostrar el estado actualizado del store de verificación
+        const state = window.store ? window.store.getState() : null;
+        if (state) {
+          console.log('Estado de verifications en Redux:', state.verification.verifications.email);
+        }
+      }, 500);
+    }
+  }, [currentUser, dispatch]);
+
+  // Proteger el renderizado si currentUser no está listo
+  if (!currentUser) {
+    return <div style={{textAlign: 'center', marginTop: '2rem'}}>Cargando perfil...</div>;
+  }
+
+  // Sincronización y actualización de indicadores/notificaciones
+  useEffect(() => {
+    // 1. Sincronizar datos del usuario (simulación: recargar datos si cambia el id)
+    // Aquí podrías hacer un dispatch para refrescar datos desde el backend si lo necesitas
+    // dispatch(fetchCurrentUser(currentUser.id));
+
+    // 2. Actualizar indicadores visuales (ejemplo: badge de verificación)
+    // Si el usuario se verifica, mostrar toast
+    if (currentUser.isVerified) {
+      toast.info('¡Tu cuenta está verificada!');
+    }
+
+    // 3. Notificaciones automáticas (simulación)
+    // Si hay nuevas notificaciones, mostrar toast
+    // if (currentUser.notifications && currentUser.notifications.length > 0) {
+    //   toast.info(`Tienes ${currentUser.notifications.length} nuevas notificaciones.`);
+    // }
+
+    // 4. Validaciones y controles (ejemplo: límite de propiedades guardadas)
+    if (savedProperties.length > 100) {
+      toast.warn('Has alcanzado el límite de propiedades guardadas.');
+    }
+    // 5. Auditoría (simulación: log de acceso)
+    // console.log('Acceso a perfil de usuario:', currentUser.id);
+  }, [currentUser, savedProperties]);
+
   // Estados para feedback de notificaciones push/email
   const [pushLoading, setPushLoading] = useState(false);
   const [pushError, setPushError] = useState(null);
@@ -80,7 +216,6 @@ const ProfilePage = () => {
     setLoading(true);
     try {
       await dispatch(updateProfile(formData));
-      toast.success('¡Perfil actualizado correctamente!');
       setShowEditModal(false);
     } catch (err) {
       toast.error('Error al actualizar el perfil.');
@@ -120,7 +255,7 @@ const ProfilePage = () => {
       preferences: {
         ...prev.preferences,
         priceRange: {
-          ...prev.preferences.priceRange,
+          ...(prev.preferences?.priceRange || { min: '', max: '' }),
           [name]: value
         }
       }
@@ -139,6 +274,7 @@ const ProfilePage = () => {
 
   // Utilidad para formatear precio
   const formatPrice = (price) => {
+    if (price === undefined || price === null || price === '') return '';
     return `$${Number(price).toLocaleString('es-CO')}`;
   };
 
@@ -152,7 +288,7 @@ const ProfilePage = () => {
               <div className="d-flex align-items-center">
                 <div className="flex-shrink-0">
                   <img 
-                    src={currentUser.avatar || '/default-avatar.png'} 
+                    src={currentUser.avatarUrl ? (currentUser.avatarUrl.startsWith('http') ? currentUser.avatarUrl : `http://192.168.20.82:3000${currentUser.avatarUrl}`) : '/default-avatar.png'} 
                     alt="Avatar" 
                     className="rounded-circle" 
                     width="100" 
@@ -174,88 +310,86 @@ const ProfilePage = () => {
                 </div>
               </div>
 
-              <div className="mt-3">
-                <Tabs
+              {/* Sección de Tabs de perfil */}
+              <Tabs
                   activeKey={activeTab}
                   onSelect={(tab) => setActiveTab(tab)}
                   className="mb-4"
                 >
-                  <>
-                    <Tab eventKey="personal" title="Información Personal">
+                  <Tab eventKey="personal" title="Información Personal">
+                    <Card>
+                      <Card.Header>
+                      </Card.Header>
+                      <Card.Body>
+                        <Row>
+                          <Col md={6}>
+                            <p><strong>Nombre:</strong> {currentUser.firstName}</p>
+                            <p><strong>Apellido:</strong> {currentUser.lastName}</p>
+                            <p><strong>Email:</strong> {currentUser.email}</p>
+                          </Col>
+                          <Col md={6}>
+                            <p><strong>Teléfono:</strong> {currentUser.phone || 'No especificado'}</p>
+                            <p><strong>Rol:</strong> {getRoleLabel(currentUser.role)}</p>
+                            <p><strong>Estado:</strong> 
+                              <Badge bg="success" className="ms-2">Activo</Badge>
+                            </p>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+                  </Tab>
+
+                  {currentUser.role === 'buyer' && (
+                    <Tab eventKey="preferences" title="Preferencias de Búsqueda">
                       <Card>
                         <Card.Header>
-                          <h6 className="mb-0">Datos Personales</h6>
+                          <h6 className="mb-0">
+                            <FaHeart className="me-2" />
+                            Mis Preferencias
+                          </h6>
                         </Card.Header>
                         <Card.Body>
-                          <Row>
-                            <Col md={6}>
-                              <p><strong>Nombre:</strong> {currentUser.firstName}</p>
-                              <p><strong>Apellido:</strong> {currentUser.lastName}</p>
-                              <p><strong>Email:</strong> {currentUser.email}</p>
-                            </Col>
-                            <Col md={6}>
-                              <p><strong>Teléfono:</strong> {currentUser.phone || 'No especificado'}</p>
-                              <p><strong>Rol:</strong> {getRoleLabel(currentUser.role)}</p>
-                              <p><strong>Estado:</strong> 
-                                <Badge bg="success" className="ms-2">Activo</Badge>
-                              </p>
-                            </Col>
-                          </Row>
+                          {currentUser.preferences ? (
+                            <Row>
+                              <Col md={6}>
+                                <p><strong>Ubicación preferida:</strong> {currentUser.preferences?.location || 'No especificada'}</p>
+                                <p><strong>Tipo de propiedad:</strong> {currentUser.preferences?.propertyType || 'Cualquiera'}</p>
+                              </Col>
+                              <Col md={6}>
+                                <p><strong>Habitaciones:</strong> {currentUser.preferences?.bedrooms || 'Cualquiera'}</p>
+                                <p><strong>Baños:</strong> {currentUser.preferences?.bathrooms || 'Cualquiera'}</p>
+                              </Col>
+                              {currentUser.preferences?.priceRange && (
+                                <Col md={12}>
+                                  <p><strong>Rango de precio:</strong> 
+                                    {currentUser.preferences?.priceRange?.min ? formatPrice(currentUser.preferences?.priceRange?.min) : ''}
+                                    {currentUser.preferences?.priceRange?.min && currentUser.preferences?.priceRange?.max ? ' - ' : ''}
+                                    {currentUser.preferences?.priceRange?.max ? formatPrice(currentUser.preferences?.priceRange?.max) : ''}
+                                    {!currentUser.preferences?.priceRange?.min && !currentUser.preferences?.priceRange?.max && 'No especificado'}
+                                  </p>
+                                </Col>
+                              )}
+                            </Row>
+                          ) : (
+                            <p className="text-muted">No has configurado tus preferencias de búsqueda.</p>
+                          )}
                         </Card.Body>
                       </Card>
                     </Tab>
+                  )}
 
-                    {currentUser.role === 'buyer' && (
-                      <Tab eventKey="preferences" title="Preferencias de Búsqueda">
-                        <Card>
-                          <Card.Header>
-                            <h6 className="mb-0">
-                              <FaHeart className="me-2" />
-                              Mis Preferencias
-                            </h6>
-                          </Card.Header>
-                          <Card.Body>
-                            {currentUser.preferences ? (
-                              <Row>
-                                <Col md={6}>
-                                  <p><strong>Ubicación preferida:</strong> {currentUser.preferences.location || 'No especificada'}</p>
-                                  <p><strong>Tipo de propiedad:</strong> {currentUser.preferences.propertyType || 'Cualquiera'}</p>
-                                </Col>
-                                <Col md={6}>
-                                  <p><strong>Habitaciones:</strong> {currentUser.preferences.bedrooms || 'Cualquiera'}</p>
-                                  <p><strong>Baños:</strong> {currentUser.preferences.bathrooms || 'Cualquiera'}</p>
-                                </Col>
-                                {currentUser.preferences.priceRange && (
-                                  <Col md={12}>
-                                    <p><strong>Rango de precio:</strong> 
-                                      {currentUser.preferences.priceRange.min && formatPrice(currentUser.preferences.priceRange.min)} 
-                                      {currentUser.preferences.priceRange.min && currentUser.preferences.priceRange.max && ' - '}
-                                      {currentUser.preferences.priceRange.max && formatPrice(currentUser.preferences.priceRange.max)}
-                                      {!currentUser.preferences.priceRange.min && !currentUser.preferences.priceRange.max && 'No especificado'}
-                                    </p>
-                                  </Col>
-                                )}
-                              </Row>
-                            ) : (
-                              <p className="text-muted">No has configurado tus preferencias de búsqueda.</p>
-                            )}
-                          </Card.Body>
-                        </Card>
-                      </Tab>
-                    )}
+                  {currentUser.role === 'agent' && (
+                    <Tab eventKey="analytics" title="Analytics Profesional">
+                      <AgentAnalyticsDashboard />
+                    </Tab>
+                  )}
 
-                    {currentUser.role === 'agent' && (
-                      <Tab eventKey="analytics" title="Analytics Profesional">
-                        <AgentAnalyticsDashboard />
-                      </Tab>
-                    )}
-
-                    <Tab eventKey="advanced" title="Configuración Avanzada">
-                      <Card>
-                        <Card.Header>
-                          <h6 className="mb-0">Configuración Avanzada</h6>
-                        </Card.Header>
-                        <Card.Body>
+                  <Tab eventKey="advanced" title="Configuración Avanzada">
+                    <Card>
+                      <Card.Header>
+                        <h6 className="mb-0">Configuración Avanzada</h6>
+                      </Card.Header>
+                      <Card.Body>
                           <Form>
                             {/* Privacidad */}
                             <h6 className="mt-2">Privacidad</h6>
@@ -344,9 +478,7 @@ const ProfilePage = () => {
                         </Card.Body>
                       </Card>
                     </Tab>
-                  </>
                 </Tabs>
-              </div>
 
               <Button
                 variant="primary"
@@ -554,20 +686,20 @@ const ProfilePage = () => {
                     {currentUser.preferences ? (
                       <Row>
                         <Col md={6}>
-                          <p><strong>Ubicación preferida:</strong> {currentUser.preferences.location || 'No especificada'}</p>
-                          <p><strong>Tipo de propiedad:</strong> {currentUser.preferences.propertyType || 'Cualquiera'}</p>
+                          <p><strong>Ubicación preferida:</strong> {currentUser.preferences?.location || 'No especificada'}</p>
+                          <p><strong>Tipo de propiedad:</strong> {currentUser.preferences?.propertyType || 'Cualquiera'}</p>
                         </Col>
                         <Col md={6}>
-                          <p><strong>Habitaciones:</strong> {currentUser.preferences.bedrooms || 'Cualquiera'}</p>
-                          <p><strong>Baños:</strong> {currentUser.preferences.bathrooms || 'Cualquiera'}</p>
+                          <p><strong>Habitaciones:</strong> {currentUser.preferences?.bedrooms || 'Cualquiera'}</p>
+                          <p><strong>Baños:</strong> {currentUser.preferences?.bathrooms || 'Cualquiera'}</p>
                         </Col>
-                        {currentUser.preferences.priceRange && (
+                        {currentUser.preferences?.priceRange && (
                           <Col md={12}>
                             <p><strong>Rango de precio:</strong> 
-                              {currentUser.preferences.priceRange.min && formatPrice(currentUser.preferences.priceRange.min)} 
-                              {currentUser.preferences.priceRange.min && currentUser.preferences.priceRange.max && ' - '}
-                              {currentUser.preferences.priceRange.max && formatPrice(currentUser.preferences.priceRange.max)}
-                              {!currentUser.preferences.priceRange.min && !currentUser.preferences.priceRange.max && 'No especificado'}
+                              {currentUser.preferences?.priceRange?.min ? formatPrice(currentUser.preferences?.priceRange?.min) : ''}
+                              {currentUser.preferences?.priceRange?.min && currentUser.preferences?.priceRange?.max ? ' - ' : ''}
+                              {currentUser.preferences?.priceRange?.max ? formatPrice(currentUser.preferences?.priceRange?.max) : ''}
+                              {!currentUser.preferences?.priceRange?.min && !currentUser.preferences?.priceRange?.max && 'No especificado'}
                             </p>
                           </Col>
                         )}
@@ -618,22 +750,89 @@ const ProfilePage = () => {
                 <Card.Body>
                   <div className="mb-3">
                     <h6>Cambiar Contraseña</h6>
-                    <Button variant="outline-primary" size="sm">
+                    <Button variant="outline-primary" size="sm" onClick={() => setShowPasswordModal(true)}>
                       Actualizar Contraseña
                     </Button>
+                    <ChangePasswordModal
+                      show={showPasswordModal}
+                      onClose={() => setShowPasswordModal(false)}
+                      onSubmit={handleChangePassword}
+                      loading={passwordLoading}
+                    />
                   </div>
                   
                   <div className="mb-3">
                     <h6>Verificación de Email</h6>
                     <div className="d-flex align-items-center">
-                      <Badge bg={currentUser.isVerified ? 'success' : 'warning'} className="me-2">
-                        {currentUser.isVerified ? 'Verificado' : 'Pendiente'}
+                      <Badge bg={verifications.email?.status === 'verified' ? 'success' : 'warning'} className="me-2">
+                        {verifications.email?.status === 'verified' ? 'Verificado' : 'Pendiente'}
                       </Badge>
-                      {!currentUser.isVerified && (
-                        <Button variant="outline-primary" size="sm">
-                          Enviar Verificación
+                      {verifications.email?.status !== 'verified' && (
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm"
+                          onClick={() => {
+                            dispatch(sendEmailVerification(currentUser.email))
+                              .unwrap()
+                              .then((res) => {
+                                toast.success(res?.message || 'Código enviado exitosamente');
+                                setShowEmailModal(true);
+                              })
+                              .catch((err) => {
+                                toast.error(err || 'No se pudo enviar el código');
+                              });
+                          }}
+                          disabled={verificationLoading.emailVerification}
+                        >
+                          {verificationLoading.emailVerification ? 'Enviando...' : 'Enviar Verificación'}
                         </Button>
                       )}
+                          {/* Modal de verificación de email */}
+                          <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)} centered>
+                            <Modal.Header closeButton>
+                              <Modal.Title>Verificar Email</Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body>
+                              <p>Hemos enviado un código de 6 dígitos a {currentUser.email}</p>
+                              <Form.Group>
+                                <Form.Label>Código de Verificación</Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  placeholder="123456"
+                                  maxLength="6"
+                                  value={emailCode}
+                                  onChange={e => setEmailCode(e.target.value.replace(/\D/g, ''))}
+                                />
+                              </Form.Group>
+                            </Modal.Body>
+                            <Modal.Footer>
+                              <Button variant="secondary" onClick={() => setShowEmailModal(false)}>
+                                Cancelar
+                              </Button>
+                              <Button 
+                                variant="primary" 
+                                onClick={() => {
+                                  if (emailCode.length !== 6) {
+                                    toast.error('El código debe tener 6 dígitos');
+                                    return;
+                                  }
+                                  dispatch(verifyCode({ email: currentUser.email, code: emailCode }))
+                                    .unwrap()
+                                    .then(() => {
+                                      toast.success('Email verificado exitosamente');
+                                      setShowEmailModal(false);
+                                      setEmailCode('');
+                                    })
+                                    .catch((err) => {
+                                      toast.error(err || 'Código incorrecto');
+                                    });
+                                }}
+                                disabled={verificationLoading.codeVerification}
+                              >
+                                {verificationLoading.codeVerification ? 'Verificando...' : 'Verificar Código'}
+                              </Button>
+                            </Modal.Footer>
+                          </Modal>
                     </div>
                   </div>
 
@@ -643,14 +842,16 @@ const ProfilePage = () => {
                       type="checkbox"
                       id="showContact"
                       label="Permitir que otros usuarios vean mi información de contacto"
-                      defaultChecked={true}
+                      checked={privacyState.showContactInfo}
+                      onChange={handlePrivacyChange}
                       className="mb-2"
                     />
                     <Form.Check
                       type="checkbox"
                       id="notifications"
                       label="Recibir notificaciones por email"
-                      defaultChecked={true}
+                      checked={privacyState.receiveEmailNotifications}
+                      onChange={handlePrivacyChange}
                     />
                   </div>
                 </Card.Body>
@@ -666,58 +867,72 @@ const ProfilePage = () => {
                   {/* Push Notifications */}
                   <div className="mb-4">
                     <h6>Notificaciones Push</h6>
-                      <Button
-                        variant="outline-primary"
-                        onClick={async () => {
-                          setPushLoading(true);
-                          setPushError(null);
-                          setPushSuccess(null);
-                          try {
-                            const { requestNotificationPermission, registerServiceWorker, subscribeUserToPush } = await import('../../utils/pushNotifications');
-                            const permission = await requestNotificationPermission();
-                            if (permission === 'granted') {
-                              const reg = await registerServiceWorker();
-                              if (reg) {
-                                const vapidRes = await fetch('/api/push/public-key');
-                                const { publicKey } = await vapidRes.json();
-                                const subscription = await subscribeUserToPush(reg, publicKey);
-                                if (subscription) {
-                                  const res = await fetch('/api/push/subscribe', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ subscription, userId: currentUser.id })
-                                  });
-                                  if (res.ok) {
-                                    setPushSuccess('¡Notificaciones push activadas correctamente!');
-                                    toast.success('¡Notificaciones push activadas correctamente!');
+                    {/* Estado para token FCM */}
+                    {(() => {
+                      const [fcmToken, setFcmToken] = React.useState(null);
+                      React.useEffect(() => {
+                        let mounted = true;
+                        import('../../utils/pushNotifications').then(({ getFcmToken }) => {
+                          getFcmToken().then(token => {
+                            if (mounted) setFcmToken(token);
+                          });
+                        });
+                        return () => { mounted = false; };
+                      }, []);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <Button
+                            variant="outline-primary"
+                            onClick={async () => {
+                              setPushLoading(true);
+                              setPushError(null);
+                              setPushSuccess(null);
+                              try {
+                                const { requestNotificationPermission, registerServiceWorker, getFcmToken } = await import('../../utils/pushNotifications');
+                                const permission = await requestNotificationPermission();
+                                if (permission === 'granted') {
+                                  const reg = await registerServiceWorker();
+                                  if (reg) {
+                                    const token = await getFcmToken();
+                                    if (token) {
+                                      await import('../../services/pushService').then(({ sendPush }) =>
+                                        sendPush({
+                                          token,
+                                          title: '¡Push activado!',
+                                          body: 'Has activado las notificaciones push correctamente.'
+                                        })
+                                      );
+                                      setPushSuccess('¡Notificaciones push activadas correctamente!');
+                                      toast.success('¡Notificaciones push activadas correctamente!');
+                                      setFcmToken(token);
+                                    } else {
+                                      setPushError('No se pudo obtener el token FCM.');
+                                      toast.error('No se pudo obtener el token FCM.');
+                                    }
                                   } else {
-                                    setPushError('Error al registrar la suscripción en el servidor.');
-                                    toast.error('Error al registrar la suscripción en el servidor.');
+                                    setPushError('No se pudo registrar el Service Worker.');
+                                    toast.error('No se pudo registrar el Service Worker.');
                                   }
                                 } else {
-                                  setPushError('No se pudo crear la suscripción push.');
-                                  toast.error('No se pudo crear la suscripción push.');
+                                  setPushError('Permiso denegado o no soportado.');
+                                  toast.error('Permiso denegado o no soportado.');
                                 }
-                              } else {
-                                setPushError('No se pudo registrar el Service Worker.');
-                                toast.error('No se pudo registrar el Service Worker.');
+                              } catch (err) {
+                                setPushError('Error inesperado: ' + err.message);
+                                toast.error('Error inesperado: ' + err.message);
                               }
-                            } else {
-                              setPushError('Permiso denegado o no soportado.');
-                              toast.error('Permiso denegado o no soportado.');
-                            }
-                          } catch (err) {
-                            setPushError('Error inesperado: ' + err.message);
-                            toast.error('Error inesperado: ' + err.message);
-                          }
-                          setPushLoading(false);
-                        }}
-                        disabled={pushLoading}
-                      >
-                        {pushLoading ? 'Activando...' : 'Activar Notificaciones Push'}
-                      </Button>
-                      {pushError && <Alert variant="danger" className="mt-2">{pushError}</Alert>}
-                      {pushSuccess && <Alert variant="success" className="mt-2">{pushSuccess}</Alert>}
+                              setPushLoading(false);
+                            }}
+                            disabled={pushLoading || !!fcmToken}
+                          >
+                            {pushLoading ? 'Activando...' : 'Activar Notificaciones Push'}
+                          </Button>
+                          {!!fcmToken && <span className="text-success">Ya está activada</span>}
+                        </div>
+                      );
+                    })()}
+                    {pushError && <Alert variant="danger" className="mt-2">{pushError}</Alert>}
+                    {pushSuccess && <Alert variant="success" className="mt-2">{pushSuccess}</Alert>}
                   </div>
                   {/* Email Notifications */}
                     <div>
@@ -729,24 +944,25 @@ const ProfilePage = () => {
                         setEmailSuccess(null);
                         const form = e.target;
                         const destinatario = form.elements[0].value;
+                        const asunto = 'Notificación desde la plataforma';
                         const mensaje = form.elements[1].value;
                         try {
-                          const res = await fetch('/api/email/send-notification', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ to: destinatario, message: mensaje, userId: currentUser.id })
-                          });
-                          if (res.ok) {
-                            setEmailSuccess('¡Email enviado correctamente!');
-                            toast.success('¡Email enviado correctamente!');
-                            form.reset();
-                          } else {
-                            setEmailError('Error al enviar el email.');
-                            toast.error('Error al enviar el email.');
-                          }
+                          // Usar el servicio correcto y el body esperado por el backend, incluyendo remitente visible
+                          await import('../../services/emailService').then(({ sendEmail }) =>
+                            sendEmail({
+                              to: destinatario,
+                              subject: asunto,
+                              text: mensaje,
+                              senderName: currentUser.firstName + ' ' + currentUser.lastName,
+                              senderEmail: currentUser.email
+                            })
+                          );
+                          setEmailSuccess('¡Email enviado correctamente!');
+                          toast.success('¡Email enviado correctamente!');
+                          form.reset();
                         } catch (err) {
-                          setEmailError('Error inesperado: ' + err.message);
-                          toast.error('Error inesperado: ' + err.message);
+                          setEmailError('Error al enviar el email.');
+                          toast.error('Error al enviar el email.');
                         }
                         setEmailLoading(false);
                       }}>
@@ -773,14 +989,36 @@ const ProfilePage = () => {
       </Row>
 
       {/* Modal de edición */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+  <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Editar Perfil</Modal.Title>
         </Modal.Header>
-        <Form noValidate validated={validated} onSubmit={handleSubmit}>
+  <Form noValidate validated={validated} onSubmit={handleSubmit} encType="multipart/form-data">
           <Modal.Body>
             <Tabs defaultActiveKey="basic" className="mb-3">
               <Tab eventKey="basic" title="Información Básica">
+                <Row>
+                  <Col md={12} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Avatar</Form.Label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <img
+                          src={avatarPreview}
+                          alt="Avatar preview"
+                          className="rounded-circle"
+                          width="64"
+                          height="64"
+                          style={{ objectFit: 'cover', border: '1px solid #ccc' }}
+                        />
+                        <Form.Control
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarChange}
+                        />
+                      </div>
+                    </Form.Group>
+                  </Col>
+                </Row>
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
@@ -845,7 +1083,7 @@ const ProfilePage = () => {
                         <Form.Control
                           type="text"
                           name="preferences.location"
-                          value={formData.preferences.location}
+                          value={formData.preferences?.location || ''}
                           onChange={handleChange}
                           placeholder="Ej: Bogotá, Zona Norte"
                         />
@@ -856,7 +1094,7 @@ const ProfilePage = () => {
                         <Form.Label>Tipo de Propiedad</Form.Label>
                         <Form.Select
                           name="preferences.propertyType"
-                          value={formData.preferences.propertyType}
+                          value={formData.preferences?.propertyType || ''}
                           onChange={handleChange}
                         >
                           <option value="">Cualquiera</option>
@@ -876,7 +1114,7 @@ const ProfilePage = () => {
                         <Form.Control
                           type="number"
                           name="min"
-                          value={formData.preferences.priceRange.min}
+                          value={formData.preferences?.priceRange?.min || ''}
                           onChange={handlePriceRangeChange}
                           placeholder="Ej: 200000000"
                         />
@@ -888,7 +1126,7 @@ const ProfilePage = () => {
                         <Form.Control
                           type="number"
                           name="max"
-                          value={formData.preferences.priceRange.max}
+                          value={formData.preferences?.priceRange?.max || ''}
                           onChange={handlePriceRangeChange}
                           placeholder="Ej: 500000000"
                         />
@@ -902,7 +1140,7 @@ const ProfilePage = () => {
                         <Form.Label>Habitaciones</Form.Label>
                         <Form.Select
                           name="preferences.bedrooms"
-                          value={formData.preferences.bedrooms}
+                          value={formData.preferences?.bedrooms || ''}
                           onChange={handleChange}
                         >
                           <option value="">Cualquiera</option>
@@ -918,7 +1156,7 @@ const ProfilePage = () => {
                         <Form.Label>Baños</Form.Label>
                         <Form.Select
                           name="preferences.bathrooms"
-                          value={formData.preferences.bathrooms}
+                          value={formData.preferences?.bathrooms || ''}
                           onChange={handleChange}
                         >
                           <option value="">Cualquiera</option>

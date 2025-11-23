@@ -80,9 +80,16 @@ const UserVerificationPage = () => {
       toast.error('No hay email asociado a tu cuenta');
       return;
     }
-    dispatch(sendEmailVerification(currentUser.email));
-    setModalType('email');
-    setShowModal(true);
+    dispatch(sendEmailVerification())
+      .unwrap()
+      .then((res) => {
+        toast.success(res?.message || 'Código enviado exitosamente');
+        setModalType('email');
+        setShowModal(true);
+      })
+      .catch((err) => {
+        toast.error(err || 'No se pudo enviar el código');
+      });
   };
 
   // Confirmar código de email
@@ -91,11 +98,16 @@ const UserVerificationPage = () => {
       toast.error('El código debe tener 6 dígitos');
       return;
     }
-    
-    // Simular verificación exitosa
-    toast.success('Email verificado exitosamente');
-    setShowModal(false);
-    setEmailCode('');
+    dispatch(verifyCode({ code: emailCode }))
+      .unwrap()
+      .then(() => {
+        toast.success('Email verificado exitosamente');
+        setShowModal(false);
+        setEmailCode('');
+      })
+      .catch((err) => {
+        toast.error(err || 'Código incorrecto');
+      });
   };
 
   // Manejar verificación de teléfono

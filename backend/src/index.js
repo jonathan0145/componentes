@@ -6,7 +6,10 @@ const PORT = process.env.PORT || 3000;
 const { sequelize } = require('./models');
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: '*', // Permitir todas las conexiones (para desarrollo)
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -19,26 +22,26 @@ app.get('/', (req, res) => {
 const { swaggerUi, specs } = require('./config/swagger');
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
-// Importar y usar rutas de módulos (auth, properties, chat, etc.)
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/properties', require('./routes/propertyRoutes'));
-app.use('/api/offers', require('./routes/offerRoutes'));
-app.use('/api/messages', require('./routes/messageRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/appointments', require('./routes/appointmentRoutes'));
-app.use('/api/chats', require('./routes/chatRoutes'));
-app.use('/conversations', require('./routes/conversationRoutes'));
-app.use('/api/pricehistories', require('./routes/priceHistoryRoutes'));
+// Importar y usar rutas de módulos (auth, properties, chat, etc.) con prefijo /api/v1
+app.use('/api/v1/users', require('./routes/userRoutes'));
+app.use('/api/v1/properties', require('./routes/propertyRoutes'));
+app.use('/api/v1/offers', require('./routes/offerRoutes'));
+app.use('/api/v1/messages', require('./routes/messageRoutes'));
+app.use('/api/v1/notifications', require('./routes/notificationRoutes'));
+app.use('/api/v1/appointments', require('./routes/appointmentRoutes'));
+app.use('/api/v1/chats', require('./routes/chatRoutes'));
+app.use('/api/v1/conversations', require('./routes/conversationRoutes'));
+app.use('/api/v1/pricehistories', require('./routes/priceHistoryRoutes'));
 // alias por compatibilidad con tests
-app.use('/api/price-history', require('./routes/priceHistoryRoutes'));
-app.use('/api/verifications', require('./routes/verificationRoutes'));
-app.use('/api/roles', require('./routes/roleRoutes'));
-app.use('/api/permissions', require('./routes/permissionRoutes'));
-app.use('/api/files', require('./routes/fileRoutes'));
-app.use('/api/email', require('./routes/emailRoutes'));
-app.use('/api/push', require('./routes/pushRoutes'));
-app.use('/api/storage', require('./routes/storageRoutes'));
-app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/v1/price-history', require('./routes/priceHistoryRoutes'));
+app.use('/api/v1/verifications', require('./routes/verificationRoutes'));
+app.use('/api/v1/roles', require('./routes/roleRoutes'));
+app.use('/api/v1/permissions', require('./routes/permissionRoutes'));
+app.use('/api/v1/files', require('./routes/fileRoutes'));
+app.use('/api/v1/email', require('./routes/emailRoutes'));
+app.use('/api/v1/push', require('./routes/pushRoutes'));
+app.use('/api/v1/storage', require('./routes/storageRoutes'));
+app.use('/api/v1/auth', require('./routes/authRoutes'));
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
@@ -52,8 +55,10 @@ const http = require('http');
 
 async function startServer(port = PORT) {
   try {
-    await sequelize.sync({ alter: false });
-    console.log('Modelos sincronizados con la base de datos');
+    // Desactivado: Las tablas ya existen desde el SQL importado
+    // await sequelize.sync({ alter: false });
+    await sequelize.authenticate();
+    console.log('Conexión a la base de datos establecida correctamente');
     const server = http.createServer(app);
     const { init } = require('./services/socketProvider');
     const setupSockets = require('./sockets');
@@ -61,9 +66,11 @@ async function startServer(port = PORT) {
     const io = init(server);
     setupSockets();
 
+    const host = process.env.HOST || '0.0.0.0';
     await new Promise((resolve) => {
-      server.listen(port, () => {
-        console.log(`Servidor API (HTTP+Socket.io) escuchando en puerto ${port}`);
+      server.listen(port, host, () => {
+        console.log(`Servidor API (HTTP+Socket.io) escuchando en ${host}:${port}`);
+        console.log(`Accesible desde la red en: http://192.168.20.82:${port}`);
         resolve();
       });
     });

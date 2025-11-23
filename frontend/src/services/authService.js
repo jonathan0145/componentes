@@ -39,7 +39,7 @@ const authService = {
   // Subir avatar
   uploadAvatar: async (file) => {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('avatar', file);
     
     return await apiClient.post('/users/avatar', formData, {
       headers: {

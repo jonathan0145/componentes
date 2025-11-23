@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, selectIsAuthenticated } from '@store/slices/authSlice';
 import { fetchProperty } from '@store/slices/propertiesSlice';
+import propertiesService from '@services/propertiesService';
 import { 
   FaArrowLeft, FaHeart, FaShareAlt, FaMapMarkerAlt, FaBed, FaBath, FaRuler, 
   FaCar, FaCalendarAlt, FaUser, FaPhone, FaEnvelope, FaEye, FaExpand,
@@ -16,6 +17,27 @@ import MakeOfferModal from '@components/offers/MakeOfferModal';
 import ScheduleVisitModal from '@components/appointments/ScheduleVisitModal';
 
 const PropertyDetailPage = () => {
+    // Handler para guardar la edición de la propiedad
+    const handleSaveEdit = async () => {
+      if (!property || !property.id) return;
+      try {
+        // Aseguramos que sellerId se envía siempre
+        const dataToSend = { ...editData, sellerId: property.sellerId };
+        await propertiesService.updateProperty(property.id, dataToSend);
+        toast.success('Propiedad actualizada correctamente');
+        setEditMode(false);
+        dispatch(fetchProperty(property.id));
+      } catch (err) {
+        if (err.response && err.response.status === 401) {
+          toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+          navigate('/login');
+        } else if (err.response && err.response.status === 403) {
+          toast.error('No tienes permisos para editar esta propiedad.');
+        } else {
+          toast.error('Error al actualizar la propiedad');
+        }
+      }
+    };
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -23,11 +45,11 @@ const PropertyDetailPage = () => {
   // Redux state
   const currentUser = useSelector(selectCurrentUser);
   const isAuthenticated = useSelector(selectIsAuthenticated);
-  
+  const property = useSelector(state => state.properties.currentProperty);
+  const loading = useSelector(state => state.properties.loading);
+  const error = useSelector(state => state.properties.error);
+
   // Local state
-  const [property, setProperty] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showOfferModal, setShowOfferModal] = useState(false);
@@ -42,90 +64,46 @@ const PropertyDetailPage = () => {
   const [downPayment, setDownPayment] = useState('');
   const [monthlyPayment, setMonthlyPayment] = useState(null);
 
-  useEffect(() => {
-    loadProperty();
-  }, [id]);
+  // Estado para edición
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({ title: '', description: '', price: '' });
 
-  const loadProperty = async () => {
-    try {
-      setLoading(true);
-      // Simulación de carga de datos - En producción usar dispatch(fetchProperty(id))
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Datos de ejemplo - En producción vendría del store
-      const mockProperty = {
-        id: id,
-        title: 'Apartamento Moderno con Vista Panorámica',
-        description: 'Hermoso apartamento ubicado en el corazón de la ciudad con vistas espectaculares. Completamente renovado con acabados de lujo y todas las comodidades modernas. Ideal para personas que buscan confort y elegancia en un lugar privilegiado.',
-        price: 450000000,
-        location: 'Bogotá, Zona Rosa',
-        address: 'Carrera 13 #85-32, Apartamento 1204',
-        type: 'apartment',
-        bedrooms: 3,
-        bathrooms: 2,
-        area: 120,
-        parkingSpaces: 2,
-        floor: 12,
-        totalFloors: 20,
-        yearBuilt: 2020,
-        status: 'active',
-        images: [
-          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-          'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800',
-          'https://images.unsplash.com/photo-1615874959474-d609969a20ed?w=800',
-          'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
-          'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800'
-        ],
-        features: {
-          furnished: true,
-          petFriendly: false,
-          elevator: true,
-          balcony: true,
-          garden: false,
-          pool: true,
-          gym: true,
-          security: true,
-          airConditioning: true,
-          heating: true,
-          internet: true,
-          laundry: true
-        },
-        seller: {
-          id: 1,
-          name: 'María González',
-          phone: '+57 320 555 1234',
-          email: 'maria.gonzalez@email.com',
-          verified: true,
-          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b147?w=150',
-          propertiesCount: 8,
-          rating: 4.8,
-          memberSince: '2022'
-        },
-        coordinates: {
-          lat: 4.6097,
-          lng: -74.0817
-        },
-        priceHistory: [
-          { date: '2024-10-01', price: 450000000 },
-          { date: '2024-09-01', price: 460000000 },
-          { date: '2024-08-01', price: 470000000 }
-        ],
-        views: 234,
-        daysOnMarket: 45,
-        createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-        updatedAt: new Date()
-      };
-      
-      setProperty(mockProperty);
-      setLoanAmount(Math.round(mockProperty.price * 0.8).toString());
-      setDownPayment(Math.round(mockProperty.price * 0.2).toString());
-    } catch (err) {
-      setError('Error al cargar la propiedad');
-      toast.error('Error al cargar la propiedad');
-    } finally {
-      setLoading(false);
+  // Handler para activar modo edición y cargar datos actuales
+  const handleEditProperty = () => {
+    if (property) {
+      setEditData({
+        title: property.title || '',
+        description: property.description || '',
+        price: property.price || ''
+      });
+      setEditMode(true);
     }
   };
+
+  // Handler para eliminar propiedad
+  const handleDeleteProperty = async () => {
+    if (!property || !property.id) return;
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta propiedad? Esta acción no se puede deshacer.')) return;
+    try {
+      await propertiesService.deleteProperty(property.id);
+      toast.success('Propiedad eliminada correctamente');
+      navigate('/properties');
+    } catch (err) {
+      toast.error('Error al eliminar la propiedad');
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchProperty(id)).then((action) => {
+        if (action.payload && action.payload.price) {
+          setLoanAmount(Math.round(action.payload.price * 0.8).toString());
+          setDownPayment(Math.round(action.payload.price * 0.2).toString());
+        }
+      });
+    }
+    // eslint-disable-next-line
+  }, [id, dispatch]);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-CO', {
@@ -269,8 +247,23 @@ const PropertyDetailPage = () => {
     );
   }
 
+  // Botones de editar y eliminar solo para el vendedor o admin
+  const canEditOrDelete = currentUser && (currentUser.role === 'admin' || currentUser.id === property?.seller?.id);
+
   return (
     <Container fluid className="py-4">
+      {canEditOrDelete && property && !editMode && (
+        <div className="mb-3 d-flex gap-2">
+          <Button 
+            variant="warning" 
+            onClick={() => navigate(`/properties/${property.id}/edit`)}
+          >
+            Editar
+          </Button>
+          <Button variant="danger" onClick={handleDeleteProperty}>Eliminar</Button>
+        </div>
+      )}
+      {/* El modo edición local ha sido reemplazado por la página EditPropertyPage */}
       {/* Header con navegación */}
       <Row className="mb-4">
         <Col>
@@ -304,7 +297,7 @@ const PropertyDetailPage = () => {
                 interval={null}
                 onSelect={(selectedIndex) => setSelectedImageIndex(selectedIndex)}
               >
-                {property.images.map((image, index) => (
+                {(property.images && Array.isArray(property.images)) ? property.images.map((image, index) => (
                   <Carousel.Item key={index}>
                     <img
                       src={image}
@@ -318,16 +311,17 @@ const PropertyDetailPage = () => {
                       onClick={() => setShowImageModal(true)}
                     />
                   </Carousel.Item>
-                ))}
+                )) : null}
               </Carousel>
               <div className="position-absolute bottom-0 end-0 p-3">
                 <Button 
                   variant="dark" 
                   size="sm"
                   onClick={() => setShowImageModal(true)}
+                  disabled={!(property.images && Array.isArray(property.images) && property.images.length > 0)}
                 >
                   <FaExpand className="me-1" />
-                  Ver todas las fotos ({property.images.length})
+                  Ver todas las fotos ({(property.images && Array.isArray(property.images)) ? property.images.length : 0})
                 </Button>
               </div>
             </div>
@@ -390,19 +384,23 @@ const PropertyDetailPage = () => {
               <div className="mb-4">
                 <h5>Características</h5>
                 <Row>
-                  {Object.entries(property.features)
-                    .filter(([key, value]) => value)
-                    .map(([feature, value]) => {
-                      const Icon = getFeatureIcon(feature);
-                      return (
-                        <Col md={6} lg={4} key={feature} className="mb-2">
-                          <div className="d-flex align-items-center">
-                            <Icon className="text-success me-2" />
-                            <span>{getFeatureLabel(feature)}</span>
-                          </div>
-                        </Col>
-                      );
-                    })}
+                  {property.features && typeof property.features === 'object' ? (
+                    Object.entries(property.features)
+                      .filter(([key, value]) => value)
+                      .map(([feature, value]) => {
+                        const Icon = getFeatureIcon(feature);
+                        return (
+                          <Col md={6} lg={4} key={feature} className="mb-2">
+                            <div className="d-flex align-items-center">
+                              <Icon className="text-success me-2" />
+                              <span>{getFeatureLabel(feature)}</span>
+                            </div>
+                          </Col>
+                        );
+                      })
+                  ) : (
+                    <Col className="text-muted">No hay características adicionales</Col>
+                  )}
                 </Row>
               </div>
 
@@ -431,20 +429,22 @@ const PropertyDetailPage = () => {
             <Card.Body>
               <div className="d-flex align-items-center mb-3">
                 <img
-                  src={property.seller.avatar}
-                  alt={property.seller.name}
+                  src={property.seller?.avatar || '/default-avatar.png'}
+                  alt={property.seller?.name || 'Vendedor'}
                   className="rounded-circle me-3"
                   style={{ width: '60px', height: '60px', objectFit: 'cover' }}
                 />
                 <div>
                   <h6 className="mb-1">
-                    {property.seller.name}
-                    {property.seller.verified && (
+                    {property.seller?.name || 'Vendedor'}
+                    {property.seller?.verified && (
                       <Badge bg="success" className="ms-2">Verificado</Badge>
                     )}
                   </h6>
                   <small className="text-muted">
-                    Miembro desde {property.seller.memberSince} • {property.seller.propertiesCount} propiedades
+                    Miembro desde {property.seller?.memberSince || 'N/D'}
+                    {' • '}
+                    {property.seller?.propertiesCount ?? 0} propiedades
                   </small>
                 </div>
               </div>
@@ -454,9 +454,13 @@ const PropertyDetailPage = () => {
                   <FaComments className="me-2" />
                   Enviar Mensaje
                 </Button>
-                <Button variant="outline-primary" onClick={() => window.open(`tel:${property.seller.phone}`)}>
+                <Button 
+                  variant="outline-primary" 
+                  onClick={() => property.seller?.phone && window.open(`tel:${property.seller.phone}`)}
+                  disabled={!property.seller?.phone}
+                >
                   <FaPhone className="me-2" />
-                  {property.seller.phone}
+                  {property.seller?.phone || 'No disponible'}
                 </Button>
               </div>
             </Card.Body>
@@ -541,7 +545,7 @@ const PropertyDetailPage = () => {
         </Modal.Header>
         <Modal.Body className="p-0">
           <Carousel activeIndex={selectedImageIndex} onSelect={setSelectedImageIndex}>
-            {property.images.map((image, index) => (
+            {(property.images && Array.isArray(property.images)) ? property.images.map((image, index) => (
               <Carousel.Item key={index}>
                 <img
                   src={image}
@@ -549,7 +553,7 @@ const PropertyDetailPage = () => {
                   style={{ width: '100%', height: '70vh', objectFit: 'cover' }}
                 />
               </Carousel.Item>
-            ))}
+            )) : null}
           </Carousel>
         </Modal.Body>
       </Modal>

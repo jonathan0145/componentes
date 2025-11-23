@@ -1,23 +1,35 @@
 {
   "development": {
-    "username": "root",
-    "password": null,
-    "database": "database_development",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "username": "inmotech_user",
+    "password": "jR3216417337",
+    "database": "inmotech",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port": 3306,
+    "logging": false
   },
   "test": {
-    "username": "root",
-    "password": null,
-    "database": "database_test",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "username": "inmotech_user",
+    "password": "jR3216417337",
+    "database": "inmotech_test",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port": 3306,
+    "logging": false
   },
   "production": {
-    "username": "root",
-    "password": null,
-    "database": "database_production",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "username": "inmotech_user",
+    "password": "jR3216417337",
+    "database": "inmotech",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port": 3306,
+    "logging": false,
+    "pool": {
+      "max": 5,
+      "min": 0,
+      "acquire": 30000,
+      "idle": 10000
+    }
   }
 }
