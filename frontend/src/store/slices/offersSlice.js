@@ -1,23 +1,14 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createOffer } from '../../services/offersService';
 
 // Thunks asíncronos
 export const submitOffer = createAsyncThunk(
   'offers/submitOffer',
   async (offerData, { rejectWithValue }) => {
     try {
-      // Aquí iría la llamada a la API real
-      // const response = await offersAPI.submitOffer(offerData);
-      
-      // Simulamos la respuesta del servidor
-      const response = {
-        id: Date.now(),
-        ...offerData,
-        status: 'pending',
-        submittedAt: new Date().toISOString(),
-        validUntil: new Date(Date.now() + (offerData.validityDays || 7) * 24 * 60 * 60 * 1000).toISOString()
-      };
-
-      return response;
+      const res = await createOffer(offerData);
+      if (res.data) return res.data;
+      return res;
     } catch (error) {
       return rejectWithValue(error.response?.data || 'Error al enviar la oferta');
     }

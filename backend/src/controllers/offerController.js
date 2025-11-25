@@ -174,7 +174,7 @@ exports.getOfferById = async (req, res) => {
 
 exports.createOffer = async (req, res) => {
   try {
-    const { propertyId, buyerId, amount, status, conversationId } = req.body;
+    const { propertyId, buyerId, amount, status, conversationId, paymentTerms, closingDate, conditions, validUntil, terms } = req.body;
     if (!propertyId || !buyerId || !amount || !conversationId) {
       return res.status(400).json({
         success: false,
@@ -219,7 +219,18 @@ exports.createOffer = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    const offer = await Offer.create({ propertyId, buyerId, amount, status });
+    const offer = await Offer.create({
+      propertyId,
+      buyerId,
+      amount,
+      status,
+      conversationId,
+      paymentTerms,
+      closingDate,
+      conditions,
+      validUntil,
+      terms
+    });
     res.status(201).json({
       success: true,
       data: offer,
@@ -252,7 +263,7 @@ exports.updateOffer = async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
-    const { amount } = req.body;
+    const { amount, paymentTerms, closingDate, conditions, validUntil, terms, status, conversationId } = req.body;
     if (amount && (typeof amount !== 'number' || amount <= 0)) {
       return res.status(400).json({
         success: false,
@@ -263,7 +274,16 @@ exports.updateOffer = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    await offer.update(req.body);
+    await offer.update({
+      amount,
+      paymentTerms,
+      closingDate,
+      conditions,
+      validUntil,
+      terms,
+      status,
+      conversationId
+    });
     res.json({
       success: true,
       data: offer,

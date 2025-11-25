@@ -7,6 +7,11 @@ const Offer = sequelize.define('Offer', {
   buyerId: { type: DataTypes.INTEGER, allowNull: false },
   amount: { type: DataTypes.INTEGER, allowNull: false },
   terms: { type: DataTypes.STRING },
+  paymentTerms: { type: DataTypes.STRING },
+  closingDate: { type: DataTypes.DATE },
+  conditions: { type: DataTypes.STRING },
+  validUntil: { type: DataTypes.DATE },
+  conversationId: { type: DataTypes.INTEGER },
   status: { type: DataTypes.STRING, defaultValue: 'pending' }, // pending, accepted, rejected, counter
   createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }

@@ -15,10 +15,29 @@ exports.changeStatus = async (req, res) => {
   }
 };
 const { Property, User, PriceHistory } = require('../models');
+const { Op } = require('sequelize');
 
 exports.getAllProperties = async (req, res) => {
   try {
-    const properties = await Property.findAll({ include: [{ model: User, as: 'seller' }, PriceHistory] });
+    // Construir filtros dinámicos
+    const { city, minPrice, maxPrice, propertyType, bedrooms, bathrooms, status, search } = req.query;
+    const where = {};
+    if (city) where.city = city;
+    if (propertyType) where.propertyType = propertyType;
+    if (status) where.status = status;
+    if (minPrice) where.price = { ...(where.price || {}), [Op.gte]: Number(minPrice) };
+    if (maxPrice) where.price = { ...(where.price || {}), [Op.lte]: Number(maxPrice) };
+    if (bedrooms) where.bedrooms = { [Op.gte]: Number(bedrooms) };
+    if (bathrooms) where.bathrooms = { [Op.gte]: Number(bathrooms) };
+    if (search) {
+      // Usar LIKE para MariaDB/MySQL
+      where.title = { [Op.like]: `%${search}%` };
+    }
+    // Eliminar filtros si el valor es nulo
+    Object.keys(where).forEach(key => {
+      if (where[key] === null || where[key] === undefined) delete where[key];
+    });
+    const properties = await Property.findAll({ where, include: [{ model: User, as: 'seller' }, PriceHistory] });
     res.json(properties);
   } catch (err) {
     res.status(500).json({

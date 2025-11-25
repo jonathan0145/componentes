@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import propertiesService from '../../services/propertiesService';
+import { getOffers, updateOffer } from '../../services/offersService';
 import { Container, Row, Col, Card, Button, Badge, Table, ProgressBar, Alert } from 'react-bootstrap';
 import { FaHome, FaEye, FaComments, FaDollarSign, FaPlus, FaEdit, FaChartLine } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -12,9 +13,11 @@ const SellerDashboard = ({ user }) => {
   const [inquiries, setInquiries] = useState([]);
   const [offers, setOffers] = useState([]);
   const [analytics, setAnalytics] = useState({});
+  const [loadingOffers, setLoadingOffers] = useState(false);
+  const [errorOffers, setErrorOffers] = useState(null);
 
   useEffect(() => {
-    // Cargar propiedades reales del vendedor
+    // Cargar propiedades reales del vendedor y ofertas
     const fetchData = async () => {
       try {
         if (!user?.id) return;
@@ -44,18 +47,55 @@ const SellerDashboard = ({ user }) => {
           averageTimeOnMarket: properties.length ? Math.round(totalDays / properties.length) : 0
         });
 
-        // TODO: Cargar consultas y ofertas reales (requiere endpoints específicos)
+        // Consultas (mantener vacío si no hay endpoint)
         setInquiries([]);
-        setOffers([]);
       } catch (err) {
         setMyProperties([]);
         setAnalytics({ totalViews: 0, totalInquiries: 0, conversionRate: 0, averageTimeOnMarket: 0 });
         setInquiries([]);
-        setOffers([]);
       }
     };
+
+    const fetchOffers = async () => {
+      setLoadingOffers(true);
+      setErrorOffers(null);
+      try {
+        const res = await getOffers();
+        // Filtrar ofertas por comprador (buyerId)
+        let offersData = res.data?.data || res.data || [];
+        if (user?.id) {
+          offersData = offersData.filter(o => o.buyerId === user.id);
+        }
+        setOffers(offersData);
+      } catch (err) {
+        setOffers([]);
+        setErrorOffers('Error al cargar ofertas');
+      }
+      setLoadingOffers(false);
+    };
+
     fetchData();
+    fetchOffers();
   }, [user]);
+  // Handlers para acciones de oferta
+  const handleOfferAction = async (offerId, action) => {
+    let newStatus = '';
+    if (action === 'accept') newStatus = 'accepted';
+    if (action === 'reject') newStatus = 'rejected';
+    if (action === 'counter') newStatus = 'counter';
+    try {
+      await updateOffer(offerId, { status: newStatus });
+      // Refrescar ofertas
+      const res = await getOffers();
+      let offersData = res.data?.data || res.data || [];
+      if (user?.id) {
+        offersData = offersData.filter(o => o.buyerId === user.id);
+      }
+      setOffers(offersData);
+    } catch (err) {
+      setErrorOffers('No se pudo actualizar la oferta');
+    }
+  };
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-CO', {
@@ -255,14 +295,25 @@ const SellerDashboard = ({ user }) => {
               </h5>
             </Card.Header>
             <Card.Body>
-              {offers.length > 0 ? (
+              {loadingOffers ? (
+                <div className="text-center py-4">
+                  <span>Cargando ofertas...</span>
+                </div>
+              ) : errorOffers ? (
+                <div className="text-center py-4">
+                  <span className="text-danger">{errorOffers}</span>
+                </div>
+              ) : offers.length > 0 ? (
                 <Table hover>
                   <thead>
                     <tr>
-                      <th>Propiedad</th>
-                      <th>Comprador</th>
-                      <th>Oferta</th>
-                      <th>% del Precio</th>
+                      <th>ID Conversación</th>
+                      <th>ID Comprador</th>
+                      <th>Monto</th>
+                      <th>Términos de Pago</th>
+                      <th>Fecha de Cierre</th>
+                      <th>Condiciones</th>
+                      <th>Válida Hasta</th>
                       <th>Estado</th>
                       <th>Acciones</th>
                     </tr>
@@ -270,25 +321,24 @@ const SellerDashboard = ({ user }) => {
                   <tbody>
                     {offers.map(offer => (
                       <tr key={offer.id}>
-                        <td>{offer.propertyTitle}</td>
-                        <td>{offer.buyerName}</td>
+                        <td>{offer.conversationId || offer.propertyId}</td>
+                        <td>{offer.buyerId}</td>
                         <td>
                           <strong className="text-success">
-                            {formatPrice(offer.offerAmount)}
+                            {formatPrice(offer.amount)}
                           </strong>
                         </td>
-                        <td>
-                          <Badge bg={offer.offerAmount >= offer.originalPrice * 0.95 ? 'success' : 'warning'}>
-                            {Math.round((offer.offerAmount / offer.originalPrice) * 100)}%
-                          </Badge>
-                        </td>
+                        <td>{offer.paymentTerms || offer.terms || '-'}</td>
+                        <td>{offer.closingDate || '-'}</td>
+                        <td>{offer.conditions || '-'}</td>
+                        <td>{offer.validUntil || '-'}</td>
                         <td>{getOfferStatusBadge(offer.status)}</td>
                         <td>
                           {offer.status === 'pending' && (
                             <div className="d-flex gap-1">
-                              <Button variant="success" size="sm">Aceptar</Button>
-                              <Button variant="outline-warning" size="sm">Negociar</Button>
-                              <Button variant="outline-danger" size="sm">Rechazar</Button>
+                              <Button variant="success" size="sm" onClick={() => handleOfferAction(offer.id, 'accept')}>Aceptar</Button>
+                              <Button variant="outline-warning" size="sm" onClick={() => handleOfferAction(offer.id, 'counter')}>Negociar</Button>
+                              <Button variant="outline-danger" size="sm" onClick={() => handleOfferAction(offer.id, 'reject')}>Rechazar</Button>
                             </div>
                           )}
                         </td>

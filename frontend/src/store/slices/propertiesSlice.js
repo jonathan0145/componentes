@@ -8,7 +8,16 @@ export const fetchProperties = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await propertiesService.getProperties(params);
-      return response.data;
+      let data = response.data;
+      // Si la respuesta es un objeto con clave properties, usar ese array
+      let propertiesArr = Array.isArray(data) ? data : (data.properties || []);
+      // Parsear imágenes si vienen como string
+      propertiesArr = propertiesArr.map(p => ({
+        ...p,
+        images: typeof p.images === 'string' ? (p.images ? JSON.parse(p.images) : []) : (p.images || [])
+      }));
+      // Retornar en el formato esperado por el slice
+      return { properties: propertiesArr };
     } catch (error) {
       return rejectWithValue(error.response?.data?.error?.message || 'Error al cargar propiedades');
     }

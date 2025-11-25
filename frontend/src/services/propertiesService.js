@@ -3,7 +3,24 @@ import apiClient from './apiClient';
 const propertiesService = {
   // Obtener lista de propiedades
   getProperties: async (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
+    // Mapeo de nombres de filtros frontend -> backend
+    const map = {
+      priceMin: 'minPrice',
+      priceMax: 'maxPrice',
+      propertyType: 'propertyType',
+      location: 'city',
+      bedrooms: 'bedrooms',
+      bathrooms: 'bathrooms',
+      search: 'search',
+      status: 'status'
+    };
+    const backendParams = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        backendParams[map[key] || key] = value;
+      }
+    });
+    const queryParams = new URLSearchParams(backendParams).toString();
     return await apiClient.get(`/properties${queryParams ? `?${queryParams}` : ''}`);
   },
 
