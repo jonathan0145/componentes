@@ -1,0 +1,6 @@
+projectKey=inmotechf
+serverUrl=http://localhost:9000
+serverVersion=25.11.0.114957
+dashboardUrl=http://localhost:9000/dashboard?id=inmotechf
+ceTaskId=1d831ec3-d12c-41fa-bf06-3cd4abe30116
+ceTaskUrl=http://localhost:9000/api/ce/task?id=1d831ec3-d12c-41fa-bf06-3cd4abe30116
