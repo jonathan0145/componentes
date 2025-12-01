@@ -91,6 +91,7 @@ exports.createProperty = async (req, res) => {
       propertyType, status,
       features = {},
       images,
+      yearBuilt, floor, totalFloors, daysOnMarket, views
     } = req.body;
 
     if (!title || !price || !address || !sellerId) {
@@ -158,7 +159,12 @@ exports.createProperty = async (req, res) => {
       bathrooms,
       area,
       parkingSpaces,
-      images
+      images,
+      yearBuilt,
+      floor,
+      totalFloors,
+      daysOnMarket,
+      views
     });
     res.status(201).json({
       success: true,
@@ -191,7 +197,7 @@ exports.updateProperty = async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
-    const { price, title } = req.body;
+    const { price, title, yearBuilt, floor, totalFloors, daysOnMarket, views } = req.body;
     if (price && (typeof price !== 'number' || price <= 0)) {
       return res.status(400).json({
         success: false,
@@ -212,7 +218,14 @@ exports.updateProperty = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    await property.update(req.body);
+    await property.update({
+      ...req.body,
+      yearBuilt,
+      floor,
+      totalFloors,
+      daysOnMarket,
+      views
+    });
     res.json({
       success: true,
       data: property,

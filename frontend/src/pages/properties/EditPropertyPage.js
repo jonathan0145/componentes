@@ -238,7 +238,12 @@ const EditPropertyPage = () => {
         status: property.status || 'active',
         features: allFeatures,
         images: allImages,
-        sellerId: property.sellerId
+        sellerId: property.sellerId,
+        floor: formData.floor ? Number(formData.floor) : undefined,
+        totalFloors: formData.totalFloors ? Number(formData.totalFloors) : undefined,
+        yearBuilt: formData.yearBuilt ? Number(formData.yearBuilt) : undefined,
+        daysOnMarket: formData.daysOnMarket ? Number(formData.daysOnMarket) : undefined,
+        views: formData.views ? Number(formData.views) : undefined
       };
       await propertiesService.updateProperty(property.id, dataToSend);
       toast.success('Propiedad actualizada exitosamente');

@@ -385,19 +385,21 @@ const PropertyDetailPage = () => {
                 <h5>Características</h5>
                 <Row>
                   {property.features && typeof property.features === 'object' ? (
-                    Object.entries(property.features)
-                      .filter(([key, value]) => value)
-                      .map(([feature, value]) => {
-                        const Icon = getFeatureIcon(feature);
-                        return (
-                          <Col md={6} lg={4} key={feature} className="mb-2">
-                            <div className="d-flex align-items-center">
-                              <Icon className="text-success me-2" />
-                              <span>{getFeatureLabel(feature)}</span>
-                            </div>
-                          </Col>
-                        );
-                      })
+                    [
+                      'furnished','petFriendly','elevator','balcony','garden','pool','gym','security','airConditioning','heating','internet','laundry'
+                    ].map((feature) => {
+                      const value = property.features[feature];
+                      const Icon = getFeatureIcon(feature);
+                      return (
+                        <Col md={6} lg={4} key={feature} className="mb-2">
+                          <div className="d-flex align-items-center">
+                            <Icon className={value ? "text-success me-2" : "text-muted me-2"} />
+                            <span>{getFeatureLabel(feature)}</span>
+                            <span className={value ? "ms-2 text-success fw-bold" : "ms-2 text-muted fw-bold"}>{value ? 'Sí' : 'No'}</span>
+                          </div>
+                        </Col>
+                      );
+                    })
                   ) : (
                     <Col className="text-muted">No hay características adicionales</Col>
                   )}
@@ -407,12 +409,12 @@ const PropertyDetailPage = () => {
               {/* Información adicional */}
               <Row className="text-muted small">
                 <Col md={6}>
-                  <p><strong>Piso:</strong> {property.floor} de {property.totalFloors}</p>
-                  <p><strong>Año de construcción:</strong> {property.yearBuilt}</p>
+                  <p><strong>Piso:</strong> {property.floor ? property.floor : 'N/D'}{property.totalFloors ? ` de ${property.totalFloors}` : ''}</p>
+                  <p><strong>Año de construcción:</strong> {property.yearBuilt ? property.yearBuilt : 'N/D'}</p>
                 </Col>
                 <Col md={6}>
-                  <p><strong>Días en el mercado:</strong> {property.daysOnMarket}</p>
-                  <p><strong>Vistas:</strong> {property.views}</p>
+                  <p><strong>Días en el mercado:</strong> {property.daysOnMarket ? property.daysOnMarket : 'N/D'}</p>
+                  <p><strong>Vistas:</strong> {property.views !== undefined ? property.views : 'N/D'}</p>
                 </Col>
               </Row>
             </Card.Body>

@@ -32,6 +32,11 @@ const Property = sequelize.define('Property', {
   parkingSpaces: { type: DataTypes.INTEGER },
   images: { type: DataTypes.JSON },
   sellerId: { type: DataTypes.INTEGER, allowNull: false },
+  yearBuilt: { type: DataTypes.INTEGER },
+  floor: { type: DataTypes.INTEGER },
+  totalFloors: { type: DataTypes.INTEGER },
+  daysOnMarket: { type: DataTypes.INTEGER },
+  views: { type: DataTypes.INTEGER, defaultValue: 0 },
   createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });

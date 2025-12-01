@@ -200,7 +200,12 @@ const CreatePropertyPage = () => {
           caption: '',
           isPrimary: idx === 0
         })),
-        sellerId: currentUser.id
+        sellerId: currentUser.id,
+        floor: formData.floor ? Number(formData.floor) : undefined,
+        totalFloors: formData.totalFloors ? Number(formData.totalFloors) : undefined,
+        yearBuilt: formData.yearBuilt ? Number(formData.yearBuilt) : undefined,
+        daysOnMarket: formData.daysOnMarket ? Number(formData.daysOnMarket) : undefined,
+        views: formData.views ? Number(formData.views) : undefined
       };
 
       await propertiesService.createProperty(dataToSend);
