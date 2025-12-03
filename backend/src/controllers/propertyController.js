@@ -38,7 +38,26 @@ exports.getAllProperties = async (req, res) => {
       if (where[key] === null || where[key] === undefined) delete where[key];
     });
     const properties = await Property.findAll({ where, include: [{ model: User, as: 'seller' }, PriceHistory] });
-    res.json(properties);
+    // Construir features en cada propiedad para la respuesta
+    const propertiesWithFeatures = properties.map(p => {
+      const data = p.toJSON();
+      data.features = {
+        furnished: data.furnished ?? false,
+        petFriendly: data.petFriendly ?? false,
+        elevator: data.elevator ?? false,
+        balcony: data.balcony ?? false,
+        garden: data.garden ?? false,
+        pool: data.pool ?? false,
+        gym: data.gym ?? false,
+        security: data.security ?? false,
+        airConditioning: data.airConditioning ?? false,
+        heating: data.heating ?? false,
+        internet: data.internet ?? false,
+        laundry: data.laundry ?? false
+      };
+      return data;
+    });
+    res.json(propertiesWithFeatures);
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -63,9 +82,34 @@ exports.getPropertyById = async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
+    // Construir features en la respuesta
+    const data = property.toJSON();
+    // Asegurar que images sea un array
+    if (typeof data.images === 'string') {
+      try {
+        data.images = JSON.parse(data.images);
+      } catch (e) {
+        data.images = [];
+      }
+    }
+    console.log('DETALLE DE PROPIEDAD ENVIADO:', data); // Log para depuración
+    data.features = {
+      furnished: data.furnished ?? false,
+      petFriendly: data.petFriendly ?? false,
+      elevator: data.elevator ?? false,
+      balcony: data.balcony ?? false,
+      garden: data.garden ?? false,
+      pool: data.pool ?? false,
+      gym: data.gym ?? false,
+      security: data.security ?? false,
+      airConditioning: data.airConditioning ?? false,
+      heating: data.heating ?? false,
+      internet: data.internet ?? false,
+      laundry: data.laundry ?? false
+    };
     res.json({
       success: true,
-      data: property,
+      data,
       message: 'Propiedad obtenida correctamente',
       timestamp: new Date().toISOString()
     });
@@ -218,8 +262,21 @@ exports.updateProperty = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
+    // Extraer campos planos de features si existen
+    const { features = {} } = req.body;
+    const {
+      bedrooms,
+      bathrooms,
+      area,
+      parkingSpaces
+    } = features;
+
     await property.update({
       ...req.body,
+      bedrooms: bedrooms !== undefined ? bedrooms : property.bedrooms,
+      bathrooms: bathrooms !== undefined ? bathrooms : property.bathrooms,
+      area: area !== undefined ? area : property.area,
+      parkingSpaces: parkingSpaces !== undefined ? parkingSpaces : property.parkingSpaces,
       yearBuilt,
       floor,
       totalFloors,

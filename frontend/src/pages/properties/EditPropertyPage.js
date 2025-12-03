@@ -65,21 +65,22 @@ const EditPropertyPage = () => {
         const prop = res.data?.data || res.data;
         setProperty(prop);
         // Mapear datos a formData
-        setFormData({
+        setFormData(prev => ({
+          ...prev,
           title: prop.title || '',
           description: prop.description || '',
-          price: prop.price || '',
+          price: prop.price !== undefined && prop.price !== null ? prop.price : '',
           location: prop.location || '',
           city: prop.city || '',
           address: prop.address || '',
           propertyType: prop.propertyType || 'apartment',
-          bedrooms: prop.bedrooms || 1,
-          bathrooms: prop.bathrooms || 1,
-          area: prop.area || '',
-          parkingSpaces: prop.parkingSpaces || 0,
-          floor: prop.floor || '',
-          totalFloors: prop.totalFloors || '',
-          yearBuilt: prop.yearBuilt || '',
+          bedrooms: typeof prop.bedrooms === 'number' ? prop.bedrooms : Number(prop.bedrooms) || 1,
+          bathrooms: typeof prop.bathrooms === 'number' ? prop.bathrooms : Number(prop.bathrooms) || 1,
+          area: prop.area !== undefined && prop.area !== null ? prop.area : '',
+          parkingSpaces: prop.parkingSpaces !== undefined && prop.parkingSpaces !== null ? prop.parkingSpaces : 0,
+          floor: prop.floor !== undefined && prop.floor !== null ? prop.floor : '',
+          totalFloors: prop.totalFloors !== undefined && prop.totalFloors !== null ? prop.totalFloors : '',
+          yearBuilt: prop.yearBuilt !== undefined && prop.yearBuilt !== null ? prop.yearBuilt : '',
           features: {
             furnished: prop.furnished || false,
             petFriendly: prop.petFriendly || false,
@@ -101,7 +102,7 @@ const EditPropertyPage = () => {
             showPhone: true,
             showEmail: true
           }
-        });
+        }));
         setInitialImages(Array.isArray(prop.images) ? prop.images : []);
       } catch (err) {
         toast.error('No se pudo cargar la propiedad');
@@ -501,14 +502,20 @@ const EditPropertyPage = () => {
                           <Form.Select
                             name="bedrooms"
                             value={formData.bedrooms}
-                            onChange={handleChange}
+                            onChange={e => handleChange({
+                              target: {
+                                name: 'bedrooms',
+                                value: Number(e.target.value),
+                                type: 'number'
+                              }
+                            })}
                           >
-                            <option value="0">0 (Estudio)</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5+</option>
+                            <option value={0}>0 (Estudio)</option>
+                            <option value={1}>1</option>
+                            <option value={2}>2</option>
+                            <option value={3}>3</option>
+                            <option value={4}>4</option>
+                            <option value={5}>5+</option>
                           </Form.Select>
                         </Form.Group>
                       </Col>
@@ -518,12 +525,18 @@ const EditPropertyPage = () => {
                           <Form.Select
                             name="bathrooms"
                             value={formData.bathrooms}
-                            onChange={handleChange}
+                            onChange={e => handleChange({
+                              target: {
+                                name: 'bathrooms',
+                                value: Number(e.target.value),
+                                type: 'number'
+                              }
+                            })}
                           >
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4+</option>
+                            <option value={1}>1</option>
+                            <option value={2}>2</option>
+                            <option value={3}>3</option>
+                            <option value={4}>4+</option>
                           </Form.Select>
                         </Form.Group>
                       </Col>

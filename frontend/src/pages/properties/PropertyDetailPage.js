@@ -49,6 +49,13 @@ const PropertyDetailPage = () => {
   const loading = useSelector(state => state.properties.loading);
   const error = useSelector(state => state.properties.error);
 
+  // Debug: mostrar imágenes en consola
+  useEffect(() => {
+    if (property && property.images) {
+      console.log('IMÁGENES RECIBIDAS:', property.images);
+    }
+  }, [property]);
+
   // Local state
   const [showImageModal, setShowImageModal] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -297,21 +304,24 @@ const PropertyDetailPage = () => {
                 interval={null}
                 onSelect={(selectedIndex) => setSelectedImageIndex(selectedIndex)}
               >
-                {(property.images && Array.isArray(property.images)) ? property.images.map((image, index) => (
-                  <Carousel.Item key={index}>
-                    <img
-                      src={image}
-                      alt={`${property.title} - ${index + 1}`}
-                      style={{ 
-                        width: '100%', 
-                        height: '400px', 
-                        objectFit: 'cover',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => setShowImageModal(true)}
-                    />
-                  </Carousel.Item>
-                )) : null}
+                {(property.images && Array.isArray(property.images)) ? property.images.map((image, index) => {
+                  const imageUrl = typeof image === 'string' ? image : image.url;
+                  return (
+                    <Carousel.Item key={index}>
+                      <img
+                        src={imageUrl}
+                        alt={`${property.title} - ${index + 1}`}
+                        style={{ 
+                          width: '100%', 
+                          height: '400px', 
+                          objectFit: 'cover',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => setShowImageModal(true)}
+                      />
+                    </Carousel.Item>
+                  );
+                }) : null}
               </Carousel>
               <div className="position-absolute bottom-0 end-0 p-3">
                 <Button 
@@ -547,15 +557,18 @@ const PropertyDetailPage = () => {
         </Modal.Header>
         <Modal.Body className="p-0">
           <Carousel activeIndex={selectedImageIndex} onSelect={setSelectedImageIndex}>
-            {(property.images && Array.isArray(property.images)) ? property.images.map((image, index) => (
-              <Carousel.Item key={index}>
-                <img
-                  src={image}
-                  alt={`${property.title} - ${index + 1}`}
-                  style={{ width: '100%', height: '70vh', objectFit: 'cover' }}
-                />
-              </Carousel.Item>
-            )) : null}
+            {(property.images && Array.isArray(property.images)) ? property.images.map((image, index) => {
+              const imageUrl = typeof image === 'string' ? image : image.url;
+              return (
+                <Carousel.Item key={index}>
+                  <img
+                    src={imageUrl}
+                    alt={`${property.title} - ${index + 1}`}
+                    style={{ width: '100%', height: '70vh', objectFit: 'cover' }}
+                  />
+                </Carousel.Item>
+              );
+            }) : null}
           </Carousel>
         </Modal.Body>
       </Modal>
