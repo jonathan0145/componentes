@@ -606,13 +606,25 @@ const PropertiesPage = () => {
 
                   <Col md={2}>
                     <Form.Group>
-                      <Form.Label>Ubicación</Form.Label>
+                      <Form.Label>Ciudad</Form.Label>
                       <Form.Control
                         type="text"
-                        name="location"
-                        value={localFilters.location}
+                        name="city"
+                        value={localFilters.city || ''}
                         onChange={handleFilterChange}
-                        placeholder="Ciudad, barrio..."
+                        placeholder="Ciudad..."
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>Dirección</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="address"
+                        value={localFilters.address || ''}
+                        onChange={handleFilterChange}
+                        placeholder="Dirección..."
                       />
                     </Form.Group>
                   </Col>

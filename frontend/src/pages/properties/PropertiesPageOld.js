@@ -289,37 +289,48 @@ const PropertiesPage = () => {
   const applyFilters = () => {
     let filtered = properties;
 
-    if (filters.search) {
-      filtered = filtered.filter(property => 
-        property.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-        property.location.toLowerCase().includes(filters.search.toLowerCase())
+    // Filtro por búsqueda (título o ubicación)
+    if (filters.search && filters.search.trim() !== '') {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(property =>
+        (property.title && property.title.toLowerCase().includes(searchLower)) ||
+        (property.location && property.location.toLowerCase().includes(searchLower))
       );
     }
 
-    if (filters.propertyType) {
+    // Filtro por tipo de propiedad
+    if (filters.propertyType && filters.propertyType !== '') {
       filtered = filtered.filter(property => property.propertyType === filters.propertyType);
     }
 
-    if (filters.priceMin) {
-      filtered = filtered.filter(property => property.price >= parseInt(filters.priceMin));
+    // Filtro por precio mínimo
+    if (filters.priceMin && !isNaN(filters.priceMin)) {
+      filtered = filtered.filter(property => Number(property.price) >= Number(filters.priceMin));
     }
 
-    if (filters.priceMax) {
-      filtered = filtered.filter(property => property.price <= parseInt(filters.priceMax));
+    // Filtro por precio máximo
+    if (filters.priceMax && !isNaN(filters.priceMax)) {
+      filtered = filtered.filter(property => Number(property.price) <= Number(filters.priceMax));
     }
 
-    if (filters.location) {
-      filtered = filtered.filter(property => 
-        property.location.toLowerCase().includes(filters.location.toLowerCase())
-      );
+    // Filtro por ubicación (robusto: ignora espacios y mayúsculas)
+    if (filters.location && filters.location.trim() !== '') {
+      const locationFilter = filters.location.trim().toLowerCase().replace(/\s+/g, ' ');
+      filtered = filtered.filter(property => {
+        if (!property.location) return false;
+        const propLocation = property.location.trim().toLowerCase().replace(/\s+/g, ' ');
+        return propLocation.includes(locationFilter);
+      });
     }
 
-    if (filters.bedrooms) {
-      filtered = filtered.filter(property => property.bedrooms >= parseInt(filters.bedrooms));
+    // Filtro por habitaciones mínimas
+    if (filters.bedrooms && !isNaN(filters.bedrooms)) {
+      filtered = filtered.filter(property => Number(property.bedrooms) >= Number(filters.bedrooms));
     }
 
-    if (filters.bathrooms) {
-      filtered = filtered.filter(property => property.bathrooms >= parseInt(filters.bathrooms));
+    // Filtro por baños mínimos
+    if (filters.bathrooms && !isNaN(filters.bathrooms)) {
+      filtered = filtered.filter(property => Number(property.bathrooms) >= Number(filters.bathrooms));
     }
 
     setFilteredProperties(filtered);

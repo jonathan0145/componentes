@@ -20,7 +20,7 @@ const { Op } = require('sequelize');
 exports.getAllProperties = async (req, res) => {
   try {
     // Construir filtros dinámicos
-    const { city, minPrice, maxPrice, propertyType, bedrooms, bathrooms, status, search } = req.query;
+    const { city, minPrice, maxPrice, propertyType, bedrooms, bathrooms, status, search, address } = req.query;
     const where = {};
     if (city) where.city = city;
     if (propertyType) where.propertyType = propertyType;
@@ -32,6 +32,10 @@ exports.getAllProperties = async (req, res) => {
     if (search) {
       // Usar LIKE para MariaDB/MySQL
       where.title = { [Op.like]: `%${search}%` };
+    }
+    if (address) {
+      // Filtrar por dirección usando LIKE
+      where.address = { [Op.like]: `%${address}%` };
     }
     // Eliminar filtros si el valor es nulo
     Object.keys(where).forEach(key => {
