@@ -30,8 +30,11 @@ exports.getAllProperties = async (req, res) => {
     if (bedrooms) where.bedrooms = { [Op.gte]: Number(bedrooms) };
     if (bathrooms) where.bathrooms = { [Op.gte]: Number(bathrooms) };
     if (search) {
-      // Usar LIKE para MariaDB/MySQL
-      where.title = { [Op.like]: `%${search}%` };
+      // Buscar en título y ubicación (location) usando LIKE
+      where[Op.or] = [
+        { title: { [Op.like]: `%${search}%` } },
+        { location: { [Op.like]: `%${search}%` } }
+      ];
     }
     if (address) {
       // Filtrar por dirección usando LIKE

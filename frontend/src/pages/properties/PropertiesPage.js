@@ -577,7 +577,7 @@ const PropertiesPage = () => {
                           name="search"
                           value={localFilters.search}
                           onChange={handleFilterChange}
-                          placeholder="Título, ubicación, descripción..."
+                          placeholder="Título, barrio"
                         />
                         <Button variant="primary" type="submit">
                           <FaSearch />
