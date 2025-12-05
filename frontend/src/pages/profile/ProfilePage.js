@@ -570,108 +570,105 @@ const ProfilePage = () => {
               </Card>
             </Tab>
 
-            {currentUser.role === 'agent' && (
-              <>
-            <Tab eventKey="advanced" title="Configuración Avanzada">
-              <Card>
-                <Card.Header>
-                  <h6 className="mb-0">Configuración Avanzada</h6>
-                </Card.Header>
-                <Card.Body>
-                  <Form>
-                    {/* Privacidad */}
-                    <h6 className="mt-2">Privacidad</h6>
-                    <Form.Check
-                      type="switch"
-                      id="privacy-profile"
-                      label="Permitir que otros usuarios vean mi perfil"
-                      defaultChecked={true}
-                      className="mb-2"
-                    />
-                    <Form.Check
-                      type="switch"
-                      id="privacy-contact"
-                      label="Mostrar mi información de contacto"
-                      defaultChecked={true}
-                      className="mb-2"
-                    />
-                    <Form.Check
-                      type="switch"
-                      id="privacy-activity"
-                      label="Mostrar mi actividad reciente"
-                      defaultChecked={false}
-                      className="mb-2"
-                    />
+            {currentUser.role === 'agent' && [
+                <Tab eventKey="advanced" title="Configuración Avanzada" key="advanced">
+                  <Card>
+                    <Card.Header>
+                      <h6 className="mb-0">Configuración Avanzada</h6>
+                    </Card.Header>
+                    <Card.Body>
+                      <Form>
+                        {/* Privacidad */}
+                        <h6 className="mt-2">Privacidad</h6>
+                        <Form.Check
+                          type="switch"
+                          id="privacy-profile"
+                          label="Permitir que otros usuarios vean mi perfil"
+                          defaultChecked={true}
+                          className="mb-2"
+                        />
+                        <Form.Check
+                          type="switch"
+                          id="privacy-contact"
+                          label="Mostrar mi información de contacto"
+                          defaultChecked={true}
+                          className="mb-2"
+                        />
+                        <Form.Check
+                          type="switch"
+                          id="privacy-activity"
+                          label="Mostrar mi actividad reciente"
+                          defaultChecked={false}
+                          className="mb-2"
+                        />
 
-                    {/* Notificaciones granulares */}
-                    <h6 className="mt-4">Preferencias de Notificación</h6>
-                    <Form.Check
-                      type="switch"
-                      id="notif-push"
-                      label="Notificaciones Push"
-                      defaultChecked={true}
-                      className="mb-2"
-                    />
-                    <Form.Check
-                      type="switch"
-                      id="notif-email"
-                      label="Notificaciones por Email"
-                      defaultChecked={true}
-                      className="mb-2"
-                    />
-                    <Form.Check
-                      type="switch"
-                      id="notif-chat"
-                      label="Notificaciones de Chat"
-                      defaultChecked={true}
-                      className="mb-2"
-                    />
-                    <Form.Check
-                      type="switch"
-                      id="notif-offers"
-                      label="Notificaciones de Ofertas"
-                      defaultChecked={true}
-                      className="mb-2"
-                    />
+                        {/* Notificaciones granulares */}
+                        <h6 className="mt-4">Preferencias de Notificación</h6>
+                        <Form.Check
+                          type="switch"
+                          id="notif-push"
+                          label="Notificaciones Push"
+                          defaultChecked={true}
+                          className="mb-2"
+                        />
+                        <Form.Check
+                          type="switch"
+                          id="notif-email"
+                          label="Notificaciones por Email"
+                          defaultChecked={true}
+                          className="mb-2"
+                        />
+                        <Form.Check
+                          type="switch"
+                          id="notif-chat"
+                          label="Notificaciones de Chat"
+                          defaultChecked={true}
+                          className="mb-2"
+                        />
+                        <Form.Check
+                          type="switch"
+                          id="notif-offers"
+                          label="Notificaciones de Ofertas"
+                          defaultChecked={true}
+                          className="mb-2"
+                        />
 
-                    {/* Visibilidad del perfil */}
-                    <h6 className="mt-4">Visibilidad del Perfil</h6>
-                    <Form.Group className="mb-3">
-                      <Form.Label>¿Quién puede ver tu perfil?</Form.Label>
-                      <Form.Select defaultValue="publico">
-                        <option value="publico">Público</option>
-                        <option value="agentes">Solo agentes</option>
-                        <option value="compradores">Solo compradores</option>
-                        <option value="oculto">Oculto</option>
-                      </Form.Select>
-                    </Form.Group>
+                        {/* Visibilidad del perfil */}
+                        <h6 className="mt-4">Visibilidad del Perfil</h6>
+                        <Form.Group className="mb-3">
+                          <Form.Label>¿Quién puede ver tu perfil?</Form.Label>
+                          <Form.Select defaultValue="publico">
+                            <option value="publico">Público</option>
+                            <option value="agentes">Solo agentes</option>
+                            <option value="compradores">Solo compradores</option>
+                            <option value="oculto">Oculto</option>
+                          </Form.Select>
+                        </Form.Group>
 
-                    {/* Información de contacto */}
-                    <h6 className="mt-4">Información de Contacto</h6>
-                    <Form.Group className="mb-2">
-                      <Form.Label>Email</Form.Label>
-                      <Form.Control type="email" defaultValue={currentUser.email} />
-                    </Form.Group>
-                    <Form.Group className="mb-2">
-                      <Form.Label>Teléfono</Form.Label>
-                      <Form.Control type="text" defaultValue={currentUser.phone} />
-                    </Form.Group>
-                    <Form.Group className="mb-2">
-                      <Form.Label>Redes sociales</Form.Label>
-                      <Form.Control type="text" placeholder="Ej: @usuarioInstagram" />
-                    </Form.Group>
+                        {/* Información de contacto */}
+                        <h6 className="mt-4">Información de Contacto</h6>
+                        <Form.Group className="mb-2">
+                          <Form.Label>Email</Form.Label>
+                          <Form.Control type="email" defaultValue={currentUser.email} />
+                        </Form.Group>
+                        <Form.Group className="mb-2">
+                          <Form.Label>Teléfono</Form.Label>
+                          <Form.Control type="text" defaultValue={currentUser.phone} />
+                        </Form.Group>
+                        <Form.Group className="mb-2">
+                          <Form.Label>Redes sociales</Form.Label>
+                          <Form.Control type="text" placeholder="Ej: @usuarioInstagram" />
+                        </Form.Group>
 
-                    <Button variant="primary" className="mt-3">Guardar Cambios</Button>
-                  </Form>
-                </Card.Body>
-              </Card>
-            </Tab>
-            
-              <Tab eventKey="analytics" title="Analytics Profesional">
-                <AgentAnalyticsDashboard />
-              </Tab>
-            </>
-            )}
+                        <Button variant="primary" className="mt-3">Guardar Cambios</Button>
+                      </Form>
+                    </Card.Body>
+                  </Card>
+                </Tab>,
+                <Tab eventKey="analytics" title="Analytics Profesional" key="analytics">
+                  <AgentAnalyticsDashboard />
+                </Tab>
+            ]}
 
             {currentUser.role === 'buyer' && (
               <Tab eventKey="preferences" title="Preferencias de Búsqueda">
@@ -722,16 +719,16 @@ const ProfilePage = () => {
                     </h6>
                   </Card.Header>
                   <Card.Body>
-                    {currentUser.professional ? (
+                    {currentUser.licenseNumber || currentUser.agency || currentUser.experience || currentUser.specialization || currentUser.coverageArea ? (
                       <Row>
                         <Col md={6}>
-                          <p><strong>Número de licencia:</strong> {currentUser.professional.licenseNumber || 'No especificado'}</p>
-                          <p><strong>Agencia:</strong> {currentUser.professional.agency || 'Independiente'}</p>
-                          <p><strong>Experiencia:</strong> {currentUser.professional.experience || 'No especificada'}</p>
+                          <p><strong>Número de licencia:</strong> {currentUser.licenseNumber || 'No especificado'}</p>
+                          <p><strong>Agencia:</strong> {currentUser.agency || 'Independiente'}</p>
+                          <p><strong>Experiencia:</strong> {currentUser.experience || 'No especificada'}</p>
                         </Col>
                         <Col md={6}>
-                          <p><strong>Especialización:</strong> {currentUser.professional.specialization || 'General'}</p>
-                          <p><strong>Área de cobertura:</strong> {currentUser.professional.coverageArea || 'No especificada'}</p>
+                          <p><strong>Especialización:</strong> {currentUser.specialization || 'General'}</p>
+                          <p><strong>Área de cobertura:</strong> {currentUser.coverageArea || 'No especificada'}</p>
                         </Col>
                       </Row>
                     ) : (

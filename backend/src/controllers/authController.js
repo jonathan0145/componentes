@@ -63,6 +63,7 @@ exports.register = async (req, res) => {
 
     // Si el rol es buyer y vienen preferencias, guardarlas; si no, guardar objeto vacío
     let preferences = {};
+    let professionalFields = {};
     if (roleObj.name === 'buyer') {
       preferences = req.body.preferences || {
         location: '',
@@ -72,13 +73,24 @@ exports.register = async (req, res) => {
         bathrooms: ''
       };
     }
+    if (roleObj.name === 'agent') {
+      const prof = req.body.professional || {};
+      professionalFields = {
+        licenseNumber: prof.licenseNumber || '',
+        agency: prof.agency || '',
+        experience: prof.experience || '',
+        specialization: prof.specialization || '',
+        coverageArea: prof.coverageArea || ''
+      };
+    }
 
     await Profile.create({
       userId: user.id,
       firstName,
       lastName,
       phone: phone || '',
-      preferences
+      preferences,
+      ...professionalFields
     });
 
     res.status(201).json({ mensaje: 'Usuario registrado', user });

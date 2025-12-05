@@ -58,20 +58,26 @@ exports.getProfile = async (req, res) => {
     }
     res.json({
       success: true,
-      data: {
-        id: userData.id,
-        email: userData.email,
-        firstName: profile.firstName || '',
-        lastName: profile.lastName || '',
-        role: userData.role,
-        phone: profile.phone || '',
-        avatarUrl: profile.avatar || '',
-        isVerified: userData.verified || false,
-        emailVerified: userData.emailVerified,
-        preferences,
-        createdAt: userData.createdAt,
-        updatedAt: userData.updatedAt
-      },
+        data: {
+          id: userData.id,
+          email: userData.email,
+          firstName: profile.firstName || '',
+          lastName: profile.lastName || '',
+          role: userData.role,
+          phone: profile.phone || '',
+          avatarUrl: profile.avatar || '',
+          isVerified: userData.verified || false,
+          emailVerified: userData.emailVerified,
+          preferences,
+          // Campos profesionales para agentes
+          licenseNumber: profile.licenseNumber || '',
+          agency: profile.agency || '',
+          experience: profile.experience || '',
+          specialization: profile.specialization || '',
+          coverageArea: profile.coverageArea || '',
+          createdAt: userData.createdAt,
+          updatedAt: userData.updatedAt
+        },
       message: 'Perfil obtenido correctamente',
       timestamp: new Date().toISOString()
     });

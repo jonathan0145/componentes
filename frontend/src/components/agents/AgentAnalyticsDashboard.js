@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Row, Col, Button, Table, Form, Badge } from 'react-bootstrap';
-import { FaChartBar, FaClipboardList, FaRobot, FaTools } from 'react-icons/fa';
+import { FaChartBar, FaClipboardList, FaRobot, FaTools, FaCalendarAlt } from 'react-icons/fa';
 
 // Datos simulados para el dashboard
 const stats = {
