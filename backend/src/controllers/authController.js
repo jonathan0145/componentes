@@ -25,10 +25,13 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 // Registro de usuario
+const { Profile } = require('../models');
 exports.register = async (req, res) => {
   try {
     console.log('BODY REGISTRO:', req.body);
-    const { email, password, name, role } = req.body;
+    const { email, password, name, role, phone } = req.body;
+    // Permitir recibir firstName y lastName opcionalmente
+    let { firstName, lastName } = req.body;
     if (!email || !password || !name || !role) {
       return res.status(400).json({ error: 'Faltan datos obligatorios' });
     }
@@ -49,6 +52,35 @@ exports.register = async (req, res) => {
       role: roleObj.name, // Guardar el nombre del rol
       roleId: roleObj.id  // Relación con la tabla Role
     });
+
+    // Extraer firstName y lastName si no vienen explícitos
+    if (!firstName || !lastName) {
+      const nameParts = name.trim().split(' ');
+      firstName = firstName || nameParts[0] || '';
+      lastName = lastName || nameParts.slice(1).join(' ') || '';
+    }
+
+
+    // Si el rol es buyer y vienen preferencias, guardarlas; si no, guardar objeto vacío
+    let preferences = {};
+    if (roleObj.name === 'buyer') {
+      preferences = req.body.preferences || {
+        location: '',
+        priceRange: { min: '', max: '' },
+        propertyType: '',
+        bedrooms: '',
+        bathrooms: ''
+      };
+    }
+
+    await Profile.create({
+      userId: user.id,
+      firstName,
+      lastName,
+      phone: phone || '',
+      preferences
+    });
+
     res.status(201).json({ mensaje: 'Usuario registrado', user });
   } catch (error) {
     res.status(500).json({ error: 'Error en el registro', detalle: error.message });

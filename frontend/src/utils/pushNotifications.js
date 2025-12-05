@@ -16,7 +16,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+let messaging;
+
+if ('serviceWorker' in navigator && window.addEventListener) {
+  // Inicializa Firebase Messaging aquí
+  messaging = getMessaging(app);
+} else {
+  // Navegador no soportado, no inicializar Firebase Messaging
+  console.warn('Push notifications no soportadas en este navegador.');
+}
 
 export async function requestNotificationPermission() {
   if (!('Notification' in window)) return 'unsupported';

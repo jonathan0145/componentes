@@ -100,6 +100,8 @@ const RegisterPage = () => {
     try {
       const userData = {
         name: `${formData.firstName} ${formData.lastName}`.trim(),
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
@@ -108,7 +110,17 @@ const RegisterPage = () => {
 
       // Agregar campos específicos según el rol
       if (formData.role === 'buyer') {
-        userData.preferences = formData.preferences;
+        // Si no hay preferencias, enviar el objeto vacío con las claves
+        userData.preferences = {
+          location: formData.preferences.location || '',
+          priceRange: {
+            min: formData.preferences.priceRange?.min || '',
+            max: formData.preferences.priceRange?.max || ''
+          },
+          propertyType: formData.preferences.propertyType || '',
+          bedrooms: formData.preferences.bedrooms || '',
+          bathrooms: formData.preferences.bathrooms || ''
+        };
       } else if (formData.role === 'agent') {
         userData.professional = formData.professional;
       }
@@ -286,6 +298,39 @@ const RegisterPage = () => {
                             onChange={handlePriceRangeChange}
                             placeholder="Sin límite"
                           />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <Row>
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Habitaciones</Form.Label>
+                          <Form.Select
+                            name="bedrooms"
+                            value={formData.preferences.bedrooms || ''}
+                            onChange={handlePreferenceChange}
+                          >
+                            <option value="">Seleccionar...</option>
+                            <option value="1+">1+</option>
+                            <option value="2+">2+</option>
+                            <option value="3+">3+</option>
+                            <option value="4+">4+</option>
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Baños</Form.Label>
+                          <Form.Select
+                            name="bathrooms"
+                            value={formData.preferences.bathrooms || ''}
+                            onChange={handlePreferenceChange}
+                          >
+                            <option value="">Seleccionar...</option>
+                            <option value="1+">1+</option>
+                            <option value="2+">2+</option>
+                            <option value="3+">3+</option>
+                          </Form.Select>
                         </Form.Group>
                       </Col>
                     </Row>
