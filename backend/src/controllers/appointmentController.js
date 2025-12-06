@@ -2,7 +2,7 @@ const { userBelongsToConversation } = require('../utils/conversationUtils');
 // Agendar cita con validación de disponibilidad
 exports.scheduleAppointment = async (req, res) => {
   try {
-    const { userId, propertyId, date } = req.body;
+    const { userId, propertyId, date, time } = req.body;
     if (!userId || !propertyId || !date) {
       return res.status(400).json({
         success: false,
@@ -47,7 +47,7 @@ exports.scheduleAppointment = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    const appointment = await Appointment.create({ userId, propertyId, date, status: 'pendiente' });
+    const appointment = await Appointment.create({ userId, propertyId, date, time, status: 'pendiente' });
     res.status(201).json({
       success: true,
       data: appointment,
@@ -71,7 +71,42 @@ const { Appointment } = require('../models');
 
 exports.getAllAppointments = async (req, res) => {
   try {
-    const appointments = await Appointment.findAll();
+    const { Property, User, Profile } = require('../models');
+    // Obtener el id del usuario autenticado (vendedor)
+    const sellerId = req.user?.id;
+    if (!sellerId) {
+      return res.status(401).json({ success: false, error: { message: 'No autenticado' } });
+    }
+    const appointments = await Appointment.findAll({
+      include: [
+        {
+          model: Property,
+          as: 'property',
+          where: { sellerId },
+          include: [
+            { model: User, as: 'seller' }
+          ]
+        },
+        {
+          model: User,
+          as: 'user',
+          include: [{ model: Profile, as: 'profile' }]
+        }
+      ]
+    });
+    if (appointments.length > 0) {
+      console.log('Primera cita:', JSON.stringify(appointments[0], null, 2));
+      if (appointments[0].User) {
+        console.log('Usuario:', JSON.stringify(appointments[0].User, null, 2));
+        if (appointments[0].User.profile) {
+          console.log('Perfil:', JSON.stringify(appointments[0].User.profile, null, 2));
+        } else {
+          console.log('No hay perfil en appointments[0].User');
+        }
+      } else {
+        console.log('No hay User en appointments[0]');
+      }
+    }
     res.json(appointments);
   } catch (error) {
     res.status(500).json({
@@ -120,7 +155,7 @@ exports.getAppointmentById = async (req, res) => {
 exports.createAppointment = async (req, res) => {
   try {
   // createAppointment called
-    const { userId, propertyId, date, status } = req.body;
+    const { userId, propertyId, date, time, status } = req.body;
     if (!userId || !propertyId || !date) {
       return res.status(400).json({
         success: false,
@@ -142,7 +177,7 @@ exports.createAppointment = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-  const appointment = await Appointment.create({ userId, propertyId, date, status });
+  const appointment = await Appointment.create({ userId, propertyId, date, time, status });
     res.status(201).json({
       success: true,
       data: appointment,

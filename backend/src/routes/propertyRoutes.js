@@ -50,7 +50,7 @@ const propertyController = require('../controllers/propertyController');
 const { verifyToken, requireRole } = require('../middlewares/authMiddleware');
 const { generalLimiter } = require('../middlewares/rateLimiters');
 
-router.get('/', generalLimiter, propertyController.getAllProperties);
+router.get('/', generalLimiter, verifyToken, propertyController.getAllProperties);
 router.get('/:id', generalLimiter, propertyController.getPropertyById);
 router.post('/',
 		verifyToken,

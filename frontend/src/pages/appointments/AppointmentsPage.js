@@ -1,118 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Tabs, Tab, Modal, Alert, Form } from 'react-bootstrap';
-import { useSelector } from 'react-redux';
+import { Container, Row, Col, Card, Button, Badge, Tabs, Tab, Modal, Alert, Form, Spinner } from 'react-bootstrap';
+import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser } from '@store/slices/authSlice';
+import {
+  fetchAppointments,
+  cancelAppointment,
+  confirmAppointment,
+  selectAppointments,
+  selectAppointmentsLoading,
+  selectAppointmentsError
+} from '@store/slices/appointmentsSlice';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUser, FaPhone, FaCheckCircle, FaTimes, FaEdit, FaEye, FaCalendarCheck, FaCalendarTimes } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 const AppointmentsPage = () => {
+    // (Eliminado: no usar appointments antes de declararla)
   const currentUser = useSelector(selectCurrentUser);
+  const dispatch = useDispatch();
+  const appointments = useSelector(selectAppointments);
+  // Mostrar en consola el array de citas para depuración (después de la declaración)
+  if (appointments && appointments.length > 0) {
+    // eslint-disable-next-line no-console
+    console.log('Citas recibidas:', appointments);
+    console.log('Rol actual:', currentUser?.role);
+    appointments.forEach((apt, idx) => {
+      console.log(`Cita #${idx + 1}: estado=${apt.status}, propiedad=${apt.property?.title}`);
+    });
+    // Log extra para ver el usuario y perfil de la primera cita
+    if (appointments[0]?.user) {
+      console.log('Usuario de la primera cita:', appointments[0].user);
+      if (appointments[0].user.profile) {
+        console.log('Perfil del usuario:', appointments[0].user.profile);
+      } else {
+        console.log('No hay perfil en appointments[0].user');
+      }
+    } else {
+      console.log('No hay user en appointments[0]');
+    }
+  }
+  const loading = useSelector(selectAppointmentsLoading);
+  const error = useSelector(selectAppointmentsError);
   const [activeTab, setActiveTab] = useState('scheduled');
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
-  // Datos simulados de citas
-  const [appointments, setAppointments] = useState([
-    {
-      id: 1,
-      property: {
-        id: 1,
-        title: 'Apartamento Moderno Zona Norte',
-        location: 'Bogotá, Zona Norte',
-        price: 350000000,
-        image: 'https://via.placeholder.com/200x150?text=Apt1',
-        seller: { name: 'María González', phone: '+57 300 123 4567' }
-      },
-      date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Mañana
-      time: '10:00',
-      visitor: {
-        name: 'Ana García',
-        phone: '+57 315 987 6543',
-        email: 'ana@email.com',
-        notes: 'Interesada en compra inmediata, busca apartamento para familia joven'
-      },
-      status: 'scheduled',
-      confirmationCode: 'VISIT-123456',
-      scheduledAt: new Date(Date.now() - 3600000).toISOString(),
-      type: currentUser?.role === 'buyer' ? 'outgoing' : 'incoming'
-    },
-    {
-      id: 2,
-      property: {
-        id: 2,
-        title: 'Casa Familiar con Jardín',
-        location: 'Medellín, El Poblado',
-        price: 580000000,
-        image: 'https://via.placeholder.com/200x150?text=Casa1',
-        seller: { name: 'Carlos Rodríguez', phone: '+57 301 555 7890' }
-      },
-      date: new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0], // Pasado mañana
-      time: '15:30',
-      visitor: {
-        name: 'Roberto Silva',
-        phone: '+57 320 111 2222',
-        email: 'roberto@email.com',
-        notes: 'Primera visita, tiene preguntas sobre financiación'
-      },
-      status: 'confirmed',
-      confirmationCode: 'VISIT-789012',
-      scheduledAt: new Date(Date.now() - 86400000).toISOString(),
-      confirmedAt: new Date(Date.now() - 43200000).toISOString(),
-      type: currentUser?.role === 'buyer' ? 'outgoing' : 'incoming'
-    },
-    {
-      id: 3,
-      property: {
-        id: 3,
-        title: 'Oficina Ejecutiva Centro',
-        location: 'Bogotá, Centro',
-        price: 420000000,
-        image: 'https://via.placeholder.com/200x150?text=Ofi1',
-        seller: { name: 'Ana Martínez', phone: '+57 302 444 5555' }
-      },
-      date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Ayer
-      time: '14:00',
-      visitor: {
-        name: 'Luisa Fernández',
-        phone: '+57 318 666 7777',
-        email: 'luisa@email.com',
-        notes: 'Inversión comercial, necesita información sobre rentabilidad'
-      },
-      status: 'completed',
-      confirmationCode: 'VISIT-345678',
-      scheduledAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-      confirmedAt: new Date(Date.now() - 36 * 3600000).toISOString(),
-      completedAt: new Date(Date.now() - 86400000 + 3600000).toISOString(),
-      type: currentUser?.role === 'buyer' ? 'outgoing' : 'incoming'
-    },
-    {
-      id: 4,
-      property: {
-        id: 4,
-        title: 'Penthouse con Terraza',
-        location: 'Bogotá, Chapinero',
-        price: 750000000,
-        image: 'https://via.placeholder.com/200x150?text=Pent1',
-        seller: { name: 'Diego Morales', phone: '+57 310 888 9999' }
-      },
-      date: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0], // Hace 2 días
-      time: '11:00',
-      visitor: {
-        name: 'Carmen Pérez',
-        phone: '+57 317 000 1111',
-        email: 'carmen@email.com',
-        notes: 'Cancelada por emergencia familiar'
-      },
-      status: 'cancelled',
-      confirmationCode: 'VISIT-901234',
-      scheduledAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-      cancelledAt: new Date(Date.now() - 2 * 86400000 + 7200000).toISOString(),
-      cancelReason: 'Emergencia familiar, reprogramar para la próxima semana',
-      type: currentUser?.role === 'buyer' ? 'outgoing' : 'incoming'
-    }
-  ]);
+  useEffect(() => {
+    dispatch(fetchAppointments());
+  }, [dispatch]);
 
   const formatDate = (dateString) => {
     return new Intl.DateTimeFormat('es-CO', {
@@ -124,13 +60,16 @@ const AppointmentsPage = () => {
   };
 
   const formatDateTime = (dateString) => {
+    if (!dateString) return 'Sin fecha';
+    const dateObj = new Date(dateString);
+    if (isNaN(dateObj.getTime())) return 'Sin fecha';
     return new Intl.DateTimeFormat('es-CO', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    }).format(new Date(dateString));
+    }).format(dateObj);
   };
 
   const getStatusBadge = (status) => {
@@ -155,11 +94,13 @@ const AppointmentsPage = () => {
   const getFilteredAppointments = (status) => {
     switch (status) {
       case 'scheduled':
-        return appointments.filter(apt => ['scheduled', 'confirmed'].includes(apt.status));
+        return appointments.filter(apt => [
+          'scheduled', 'confirmed', 'pending', 'pendiente'
+        ].includes((apt.status || '').toLowerCase()));
       case 'completed':
-        return appointments.filter(apt => apt.status === 'completed');
+        return appointments.filter(apt => (apt.status || '').toLowerCase() === 'completed' || (apt.status || '').toLowerCase() === 'completada');
       case 'cancelled':
-        return appointments.filter(apt => apt.status === 'cancelled');
+        return appointments.filter(apt => (apt.status || '').toLowerCase() === 'cancelled' || (apt.status || '').toLowerCase() === 'cancelada');
       default:
         return appointments;
     }
@@ -181,39 +122,28 @@ const AppointmentsPage = () => {
       return;
     }
 
-    // Simular cancelación
-    setAppointments(prev => 
-      prev.map(apt => 
-        apt.id === selectedAppointment.id 
-          ? {
-              ...apt,
-              status: 'cancelled',
-              cancelledAt: new Date().toISOString(),
-              cancelReason
-            }
-          : apt
-      )
-    );
-
-    toast.success('Cita cancelada exitosamente');
-    setShowCancelModal(false);
-    setCancelReason('');
-    setSelectedAppointment(null);
+    dispatch(cancelAppointment({ appointmentId: selectedAppointment.id, reason: cancelReason }))
+      .unwrap()
+      .then(() => {
+        toast.success('Cita cancelada exitosamente');
+        setShowCancelModal(false);
+        setCancelReason('');
+        setSelectedAppointment(null);
+      })
+      .catch((err) => {
+        toast.error('Error al cancelar la cita: ' + err);
+      });
   };
 
   const handleConfirmAppointment = (appointmentId) => {
-    setAppointments(prev => 
-      prev.map(apt => 
-        apt.id === appointmentId 
-          ? {
-              ...apt,
-              status: 'confirmed',
-              confirmedAt: new Date().toISOString()
-            }
-          : apt
-      )
-    );
-    toast.success('Cita confirmada exitosamente');
+    dispatch(confirmAppointment(appointmentId))
+      .unwrap()
+      .then(() => {
+        toast.success('Cita confirmada exitosamente');
+      })
+      .catch((err) => {
+        toast.error('Error al confirmar la cita: ' + err);
+      });
   };
 
   const isUpcoming = (date, time) => {
@@ -238,6 +168,17 @@ const AppointmentsPage = () => {
 
   return (
     <Container fluid className="py-4">
+      {loading.fetch && (
+        <div className="text-center py-5">
+          <Spinner animation="border" variant="primary" />
+          <div>Cargando citas...</div>
+        </div>
+      )}
+      {error && (
+        <Alert variant="danger" className="my-3">
+          Error: {error}
+        </Alert>
+      )}
       <Row>
         <Col>
           <div className="d-flex justify-content-between align-items-center mb-4">
@@ -314,16 +255,45 @@ const AppointmentsPage = () => {
                               </div>
 
                               <div className="mb-3">
-                                <img
-                                  src={appointment.property.image}
-                                  alt={appointment.property.title}
-                                  className="img-fluid rounded mb-2"
-                                  style={{ height: '120px', width: '100%', objectFit: 'cover' }}
-                                />
-                                <h6 className="mb-1">{appointment.property.title}</h6>
+                                {(() => {
+                                  // Lógica robusta para obtener imagen
+                                  let img = '';
+                                  const fallback = 'https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2FzYXxlbnwwfHwwfHx8MA%3D%3D';
+                                  let imagesArr = appointment.property?.images;
+                                  if (typeof imagesArr === 'string') {
+                                    try {
+                                      imagesArr = JSON.parse(imagesArr);
+                                    } catch (e) {
+                                      imagesArr = [];
+                                    }
+                                  }
+                                  if (Array.isArray(imagesArr) && imagesArr.length > 0) {
+                                    const firstImg = imagesArr[0];
+                                    if (typeof firstImg === 'string' && firstImg.trim() !== '' && firstImg.trim().startsWith('http')) {
+                                      img = firstImg.trim();
+                                    } else if (firstImg && typeof firstImg === 'object' && typeof firstImg.url === 'string' && firstImg.url.trim().startsWith('http')) {
+                                      img = firstImg.url.trim();
+                                    } else {
+                                      img = fallback;
+                                    }
+                                  } else if (appointment.property?.image && appointment.property.image.trim().startsWith('http')) {
+                                    img = appointment.property.image.trim();
+                                  } else {
+                                    img = fallback;
+                                  }
+                                  return (
+                                    <img
+                                      src={img}
+                                      alt={appointment.property && appointment.property.title ? appointment.property.title : 'Sin título'}
+                                      className="img-fluid rounded mb-2"
+                                      style={{ height: '120px', width: '100%', objectFit: 'cover' }}
+                                    />
+                                  );
+                                })()}
+                                <h6 className="mb-1">{appointment.property && appointment.property.title ? appointment.property.title : 'Sin título'}</h6>
                                 <small className="text-muted d-flex align-items-center">
                                   <FaMapMarkerAlt className="me-1" />
-                                  {appointment.property.location}
+                                  {appointment.property && appointment.property.location ? appointment.property.location : 'Sin ubicación'}
                                 </small>
                               </div>
 
@@ -334,11 +304,21 @@ const AppointmentsPage = () => {
                                 </p>
                                 <p className="mb-1">
                                   <FaClock className="me-2 text-primary" />
-                                  <strong>{appointment.time}</strong>
+                                  <strong>{appointment.time ? appointment.time : 'Sin hora'}</strong>
                                 </p>
                                 <p className="mb-0">
                                   <FaUser className="me-2 text-primary" />
-                                  {appointment.visitor.name}
+                                  {appointment.user && appointment.user.profile
+                                    ? `${appointment.user.profile.firstName || ''} ${appointment.user.profile.lastName || ''}`.trim() || appointment.user.name
+                                    : appointment.user?.name || 'Sin nombre'}
+                                </p>
+                                <p className="mb-0">
+                                  <FaUser className="me-2 text-warning" />
+                                  <strong>Vendedor:</strong> {
+                                    appointment.property && appointment.property.seller && appointment.property.seller.name
+                                      ? appointment.property.seller.name
+                                      : 'Sin vendedor'
+                                  }
                                 </p>
                               </div>
 
@@ -419,7 +399,9 @@ const AppointmentsPage = () => {
                                 </small>
                                 <br />
                                 <small className="text-muted">
-                                  <strong>Visitante:</strong> {appointment.visitor.name}
+                                  <strong>Visitante:</strong> {appointment.user && appointment.user.profile
+                                    ? `${appointment.user.profile.firstName || ''} ${appointment.user.profile.lastName || ''}`.trim() || appointment.user.name
+                                    : appointment.user?.name || 'Sin nombre'}
                                 </small>
                                 {appointment.completedAt && (
                                   <>
@@ -543,11 +525,39 @@ const AppointmentsPage = () => {
                   </h6>
                 </Col>
                 <Col md={4}>
-                  <img
-                    src={selectedAppointment.property.image}
-                    alt={selectedAppointment.property.title}
-                    className="img-fluid rounded"
-                  />
+                  {(() => {
+                    let img = '';
+                    const fallback = 'https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2FzYXxlbnwwfHwwfHx8MA%3D%3D';
+                    let imagesArr = selectedAppointment.property?.images;
+                    if (typeof imagesArr === 'string') {
+                      try {
+                        imagesArr = JSON.parse(imagesArr);
+                      } catch (e) {
+                        imagesArr = [];
+                      }
+                    }
+                    if (Array.isArray(imagesArr) && imagesArr.length > 0) {
+                      const firstImg = imagesArr[0];
+                      if (typeof firstImg === 'string' && firstImg.trim() !== '' && firstImg.trim().startsWith('http')) {
+                        img = firstImg.trim();
+                      } else if (firstImg && typeof firstImg === 'object' && typeof firstImg.url === 'string' && firstImg.url.trim().startsWith('http')) {
+                        img = firstImg.url.trim();
+                      } else {
+                        img = fallback;
+                      }
+                    } else if (selectedAppointment.property?.image && selectedAppointment.property.image.trim().startsWith('http')) {
+                      img = selectedAppointment.property.image.trim();
+                    } else {
+                      img = fallback;
+                    }
+                    return (
+                      <img
+                        src={img}
+                        alt={selectedAppointment.property && selectedAppointment.property.title ? selectedAppointment.property.title : 'Sin título'}
+                        className="img-fluid rounded"
+                      />
+                    );
+                  })()}
                 </Col>
               </Row>
 
@@ -570,20 +580,26 @@ const AppointmentsPage = () => {
                 <Col md={6}>
                   <h6>Información del Visitante</h6>
                   <p>
-                    <strong>Nombre:</strong> {selectedAppointment.visitor.name}
+                    <strong>Nombre:</strong> {
+                      selectedAppointment.user && selectedAppointment.user.profile && (selectedAppointment.user.profile.firstName || selectedAppointment.user.profile.lastName)
+                        ? `${selectedAppointment.user.profile.firstName || ''} ${selectedAppointment.user.profile.lastName || ''}`.trim()
+                        : selectedAppointment.user?.name || 'Sin nombre'
+                    }
                   </p>
                   <p>
-                    <strong>Teléfono:</strong> {selectedAppointment.visitor.phone}
+                    <strong>Teléfono:</strong> {
+                      selectedAppointment.user && selectedAppointment.user.profile && selectedAppointment.user.profile.phone
+                        ? selectedAppointment.user.profile.phone
+                        : selectedAppointment.user?.phone || 'Sin teléfono'
+                    }
                   </p>
-                  {selectedAppointment.visitor.email && (
-                    <p>
-                      <strong>Email:</strong> {selectedAppointment.visitor.email}
-                    </p>
-                  )}
+                  <p>
+                    <strong>Email:</strong> {selectedAppointment.user?.email || 'Sin email'}
+                  </p>
                 </Col>
               </Row>
 
-              {selectedAppointment.visitor.notes && (
+              {selectedAppointment.visitor && selectedAppointment.visitor.notes && (
                 <div className="mb-3">
                   <h6>Notas del Visitante</h6>
                   <p className="bg-light p-3 rounded">{selectedAppointment.visitor.notes}</p>

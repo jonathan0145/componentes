@@ -7,6 +7,7 @@ const Appointment = sequelize.define('Appointment', {
   userId: { type: DataTypes.INTEGER, allowNull: false },
   date: { type: DataTypes.DATE, allowNull: false },
   notes: { type: DataTypes.STRING },
+  time: { type: DataTypes.STRING }, // Hora de la cita (HH:mm)
   status: { type: DataTypes.STRING, defaultValue: 'pending' }, // pending, confirmed, cancelled
   createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });

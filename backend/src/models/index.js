@@ -30,10 +30,10 @@ Verification.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(Notification, { foreignKey: 'userId' });
 Notification.belongsTo(User, { foreignKey: 'userId' });
 
-User.hasMany(Appointment, { foreignKey: 'userId' });
-Appointment.belongsTo(User, { foreignKey: 'userId' });
-Property.hasMany(Appointment, { foreignKey: 'propertyId' });
-Appointment.belongsTo(Property, { foreignKey: 'propertyId' });
+User.hasMany(Appointment, { foreignKey: 'userId', as: 'appointments' });
+Appointment.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+Property.hasMany(Appointment, { foreignKey: 'propertyId', as: 'appointments' });
+Appointment.belongsTo(Property, { foreignKey: 'propertyId', as: 'property' });
 
 // Chat y mensajes
 Chat.hasMany(Message, { foreignKey: 'chatId' });

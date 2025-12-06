@@ -43,7 +43,8 @@ const appointmentController = require('../controllers/appointmentController');
 const { generalLimiter } = require('../middlewares/rateLimiters');
 const router = express.Router();
 
-router.get('/', generalLimiter, appointmentController.getAllAppointments);
+const { verifyToken } = require('../middlewares/authMiddleware');
+router.get('/', generalLimiter, verifyToken, appointmentController.getAllAppointments);
 router.get('/:id', generalLimiter, appointmentController.getAppointmentById);
 router.post('/',
 	generalLimiter,

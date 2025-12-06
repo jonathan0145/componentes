@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as appointmentsService from '../../services/appointmentsService';
 
 // Mock API functions
 const mockAppointmentsAPI = {
@@ -161,12 +162,12 @@ const mockAppointmentsAPI = {
 // Async thunks
 export const fetchAppointments = createAsyncThunk(
   'appointments/fetchAppointments',
-  async (userId, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const appointments = await mockAppointmentsAPI.fetchAppointments(userId);
-      return appointments;
+      const res = await appointmentsService.getAppointments();
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -175,10 +176,11 @@ export const scheduleAppointment = createAsyncThunk(
   'appointments/scheduleAppointment',
   async (appointmentData, { rejectWithValue }) => {
     try {
-      const appointment = await mockAppointmentsAPI.scheduleAppointment(appointmentData);
-      return appointment;
+      // Usar el endpoint simple para agendar desde la carta
+      const res = await appointmentsService.createSimpleAppointment(appointmentData);
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -199,10 +201,10 @@ export const cancelAppointment = createAsyncThunk(
   'appointments/cancelAppointment',
   async ({ appointmentId, reason }, { rejectWithValue }) => {
     try {
-      const cancelledAppointment = await mockAppointmentsAPI.cancelAppointment(appointmentId, reason);
-      return cancelledAppointment;
+      const res = await appointmentsService.updateAppointment(appointmentId, { status: 'cancelled', cancelReason: reason });
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -211,10 +213,10 @@ export const confirmAppointment = createAsyncThunk(
   'appointments/confirmAppointment',
   async (appointmentId, { rejectWithValue }) => {
     try {
-      const confirmedAppointment = await mockAppointmentsAPI.confirmAppointment(appointmentId);
-      return confirmedAppointment;
+      const res = await appointmentsService.updateAppointment(appointmentId, { status: 'confirmed', confirmedAt: new Date().toISOString() });
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );

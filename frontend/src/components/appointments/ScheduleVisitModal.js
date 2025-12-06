@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Button, Alert, Row, Col, Card, Badge } from 'react-bootstrap';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUser, FaPhone, FaEnvelope, FaCheckCircle } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
-import { scheduleAppointment, getAvailableSlots, selectAppointmentsLoading, selectAvailableSlots } from '@store/slices/appointmentsSlice';
+import { scheduleAppointment, getAvailableSlots, selectAppointmentsLoading, selectAvailableSlots, fetchAppointments } from '@store/slices/appointmentsSlice';
 import { selectCurrentUser } from '@store/slices/authSlice';
 import { toast } from 'react-toastify';
 
@@ -15,7 +15,7 @@ const ScheduleVisitModal = ({ show, onHide, property, onVisitScheduled }) => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [contactInfo, setContactInfo] = useState({
-    name: currentUser?.name || '',
+    name: (currentUser?.firstName && currentUser?.lastName) ? `${currentUser.firstName} ${currentUser.lastName}` : '',
     phone: currentUser?.phone || '',
     email: currentUser?.email || '',
     notes: ''
@@ -38,7 +38,7 @@ const ScheduleVisitModal = ({ show, onHide, property, onVisitScheduled }) => {
     if (currentUser) {
       setContactInfo(prev => ({
         ...prev,
-        name: currentUser.name || prev.name,
+        name: (currentUser.firstName && currentUser.lastName) ? `${currentUser.firstName} ${currentUser.lastName}` : prev.name,
         phone: currentUser.phone || prev.phone,
         email: currentUser.email || prev.email
       }));
@@ -63,34 +63,27 @@ const ScheduleVisitModal = ({ show, onHide, property, onVisitScheduled }) => {
       return;
     }
     
-    if (!contactInfo.name.trim()) {
-      toast.warning('Por favor ingresa tu nombre');
-      return;
-    }
     
-    if (!contactInfo.phone.trim()) {
-      toast.warning('Por favor ingresa tu teléfono');
-      return;
-    }
 
     try {
       const appointmentData = {
-        property: {
-          id: property.id,
-          title: property.title,
-          location: property.location,
-          price: property.price,
-          image: property.images?.[0] || property.image,
-          seller: property.seller || { name: 'Vendedor', phone: '+57 300 000 0000' }
-        },
-        date: selectedDate,
+        userId: currentUser.id,
+        propertyId: property.id,
+        date: `${selectedDate}T${selectedTime}:00`,
         time: selectedTime,
-        visitor: contactInfo
+        notes: contactInfo.notes,
+        visitor: {
+          name: contactInfo.name,
+          phone: contactInfo.phone,
+          email: contactInfo.email
+        }
       };
 
       const result = await dispatch(scheduleAppointment(appointmentData)).unwrap();
       
       toast.success('¡Cita agendada exitosamente! Te enviaremos una confirmación.');
+      // Recargar la lista de citas para que la UI muestre los datos completos
+      dispatch(fetchAppointments());
       onVisitScheduled?.(result);
       handleReset();
       onHide();
@@ -103,7 +96,7 @@ const ScheduleVisitModal = ({ show, onHide, property, onVisitScheduled }) => {
     setSelectedDate('');
     setSelectedTime('');
     setContactInfo({
-      name: currentUser?.name || '',
+      name: (currentUser?.firstName && currentUser?.lastName) ? `${currentUser.firstName} ${currentUser.lastName}` : '',
       phone: currentUser?.phone || '',
       email: currentUser?.email || '',
       notes: ''
@@ -261,39 +254,17 @@ const ScheduleVisitModal = ({ show, onHide, property, onVisitScheduled }) => {
           </Card.Header>
           <Card.Body>
             <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Nombre Completo *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={contactInfo.name}
-                    onChange={(e) => setContactInfo(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ingresa tu nombre completo"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Teléfono *</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    value={contactInfo.phone}
-                    onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="+57 300 123 4567"
-                  />
-                </Form.Group>
-              </Col>
             </Row>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Email (opcional)</Form.Label>
-              <Form.Control
-                type="email"
-                value={contactInfo.email}
-                onChange={(e) => setContactInfo(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="tu@email.com"
-              />
-            </Form.Group>
+            <div className="mb-3">
+              <strong>Nombre:</strong> {contactInfo.name}
+            </div>
+            <div className="mb-3">
+              <strong>Teléfono:</strong> {contactInfo.phone}
+            </div>
+            <div className="mb-3">
+              <strong>Email:</strong> {contactInfo.email}
+            </div>
             
             <Form.Group className="mb-0">
               <Form.Label>Notas adicionales (opcional)</Form.Label>
@@ -345,7 +316,7 @@ const ScheduleVisitModal = ({ show, onHide, property, onVisitScheduled }) => {
         <Button 
           variant="primary" 
           onClick={handleScheduleVisit}
-          disabled={!selectedDate || !selectedTime || !contactInfo.name || !contactInfo.phone || loading.schedule}
+          disabled={!selectedDate || !selectedTime || !contactInfo.name || !contactInfo.phone || !contactInfo.email || loading.schedule}
         >
           {loading.schedule ? (
             <>

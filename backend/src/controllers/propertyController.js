@@ -26,6 +26,10 @@ exports.getAllProperties = async (req, res) => {
       airConditioning, heating, internet, laundry
     } = req.query;
     const where = {};
+    // Filtrar solo por el vendedor autenticado
+    if (req.user && req.user.id) {
+      where.sellerId = req.user.id;
+    }
     if (city) where.city = city;
     if (propertyType) where.propertyType = propertyType;
     if (status) where.status = status;

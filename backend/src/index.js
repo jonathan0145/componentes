@@ -49,6 +49,7 @@ apiV1Router.use('/offers', require('./routes/offerRoutes'));
 apiV1Router.use('/messages', require('./routes/messageRoutes'));
 apiV1Router.use('/notifications', require('./routes/notificationRoutes'));
 apiV1Router.use('/appointments', require('./routes/appointmentRoutes'));
+apiV1Router.use('/appointments', require('./routes/appointmentSimpleRoutes'));
 apiV1Router.use('/chats', require('./routes/chatRoutes'));
 apiV1Router.use('/conversations', require('./routes/conversationRoutes'));
 apiV1Router.use('/pricehistories', require('./routes/priceHistoryRoutes'));
