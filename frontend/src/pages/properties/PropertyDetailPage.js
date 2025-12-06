@@ -305,7 +305,14 @@ const PropertyDetailPage = () => {
                 onSelect={(selectedIndex) => setSelectedImageIndex(selectedIndex)}
               >
                 {(property.images && Array.isArray(property.images)) ? property.images.map((image, index) => {
-                  const imageUrl = typeof image === 'string' ? image : image.url;
+                  let imageUrl = '';
+                  if (typeof image === 'string') {
+                    imageUrl = image && image.trim() !== '' ? image : 'https://via.placeholder.com/800x400?text=Sin+Imagen';
+                  } else if (image && typeof image.url === 'string' && image.url.trim() !== '') {
+                    imageUrl = image.url;
+                  } else {
+                    imageUrl = 'https://via.placeholder.com/800x400?text=Sin+Imagen';
+                  }
                   return (
                     <Carousel.Item key={index}>
                       <img
@@ -419,11 +426,12 @@ const PropertyDetailPage = () => {
               {/* Información adicional */}
               <Row className="text-muted small">
                 <Col md={6}>
-                  <p><strong>Piso:</strong> {property.floor ? property.floor : 'N/D'}{property.totalFloors ? ` de ${property.totalFloors}` : ''}</p>
+                  <p><strong>Piso de ocupación:</strong> {property.floor ? property.floor : 'N/D'}</p>
+                  <p><strong>Pisos de Edificación:</strong> {property.totalFloors ? property.totalFloors : 'N/D'}</p>
                   <p><strong>Año de construcción:</strong> {property.yearBuilt ? property.yearBuilt : 'N/D'}</p>
                 </Col>
                 <Col md={6}>
-                  <p><strong>Días en el mercado:</strong> {property.daysOnMarket ? property.daysOnMarket : 'N/D'}</p>
+                  <p><strong>Días en el mercado:</strong> {property.createdAt ? Math.max(0, Math.floor((new Date() - new Date(property.createdAt)) / (1000 * 60 * 60 * 24))) : 'N/D'}</p>
                   <p><strong>Vistas:</strong> {property.views !== undefined ? property.views : 'N/D'}</p>
                 </Col>
               </Row>
@@ -558,7 +566,14 @@ const PropertyDetailPage = () => {
         <Modal.Body className="p-0">
           <Carousel activeIndex={selectedImageIndex} onSelect={setSelectedImageIndex}>
             {(property.images && Array.isArray(property.images)) ? property.images.map((image, index) => {
-              const imageUrl = typeof image === 'string' ? image : image.url;
+              let imageUrl = '';
+              if (typeof image === 'string') {
+                imageUrl = image && image.trim() !== '' ? image : 'https://via.placeholder.com/800x400?text=Sin+Imagen';
+              } else if (image && typeof image.url === 'string' && image.url.trim() !== '') {
+                imageUrl = image.url;
+              } else {
+                imageUrl = 'https://via.placeholder.com/800x400?text=Sin+Imagen';
+              }
               return (
                 <Carousel.Item key={index}>
                   <img

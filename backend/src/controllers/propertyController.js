@@ -20,7 +20,11 @@ const { Op } = require('sequelize');
 exports.getAllProperties = async (req, res) => {
   try {
     // Construir filtros dinámicos
-    const { city, minPrice, maxPrice, propertyType, bedrooms, bathrooms, status, search, address } = req.query;
+    const {
+      city, minPrice, maxPrice, propertyType, bedrooms, bathrooms, status, search, address,
+      furnished, petFriendly, elevator, balcony, garden, pool, gym, security,
+      airConditioning, heating, internet, laundry
+    } = req.query;
     const where = {};
     if (city) where.city = city;
     if (propertyType) where.propertyType = propertyType;
@@ -40,14 +44,62 @@ exports.getAllProperties = async (req, res) => {
       // Filtrar por dirección usando LIKE
       where.address = { [Op.like]: `%${address}%` };
     }
+
+    // Filtros de características (solo si vienen en la query)
+    const featureFilters = {
+      furnished,
+      petFriendly,
+      elevator,
+      balcony,
+      garden,
+      pool,
+      gym,
+      security,
+      airConditioning,
+      heating,
+      internet,
+      laundry
+    };
+    Object.entries(featureFilters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        // Permitir '1', 'true', '0', 'false' como valores
+        if (value === '1' || value === 'true') where[key] = true;
+        if (value === '0' || value === 'false') where[key] = false;
+      }
+    });
+
     // Eliminar filtros si el valor es nulo
     Object.keys(where).forEach(key => {
       if (where[key] === null || where[key] === undefined) delete where[key];
     });
-    const properties = await Property.findAll({ where, include: [{ model: User, as: 'seller' }, PriceHistory] });
+    // Ordenamiento
+    let order = [['createdAt', 'DESC']];
+    if (req.query.sort === 'created_asc') order = [['createdAt', 'ASC']];
+    if (req.query.sort === 'price_asc') order = [['price', 'ASC']];
+    if (req.query.sort === 'price_desc') order = [['price', 'DESC']];
+    if (req.query.sort === 'area_asc') order = [['area', 'ASC']];
+    if (req.query.sort === 'area_desc') order = [['area', 'DESC']];
+
+    const { Profile } = require('../models');
+    const properties = await Property.findAll({
+      where,
+      order,
+      include: [
+        {
+          model: User,
+          as: 'seller',
+          include: [{ model: Profile, as: 'profile' }]
+        },
+        PriceHistory
+      ]
+    });
     // Construir features en cada propiedad para la respuesta
     const propertiesWithFeatures = properties.map(p => {
       const data = p.toJSON();
+      // Si el vendedor tiene perfil, usar el teléfono del perfil
+      if (data.seller && data.seller.profile && data.seller.profile.phone) {
+        data.seller.phone = data.seller.profile.phone;
+      }
       data.features = {
         furnished: data.furnished ?? false,
         petFriendly: data.petFriendly ?? false,
@@ -64,6 +116,7 @@ exports.getAllProperties = async (req, res) => {
       };
       return data;
     });
+    console.log('PROPIEDADES ENVIADAS (Mis Propiedades):', propertiesWithFeatures.map(p => ({ id: p.id, images: p.images })));
     res.json(propertiesWithFeatures);
   } catch (err) {
     res.status(500).json({
@@ -80,7 +133,17 @@ exports.getAllProperties = async (req, res) => {
 
 exports.getPropertyById = async (req, res) => {
   try {
-    const property = await Property.findByPk(req.params.id, { include: [{ model: User, as: 'seller' }, PriceHistory] });
+    const { Profile } = require('../models');
+    const property = await Property.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'seller',
+          include: [{ model: Profile, as: 'profile' }]
+        },
+        PriceHistory
+      ]
+    });
     if (!property) return res.status(404).json({
       success: false,
       error: {
@@ -91,6 +154,10 @@ exports.getPropertyById = async (req, res) => {
     });
     // Construir features en la respuesta
     const data = property.toJSON();
+    // Si el vendedor tiene perfil, usar el teléfono del perfil
+    if (data.seller && data.seller.profile && data.seller.profile.phone) {
+      data.seller.phone = data.seller.profile.phone;
+    }
     // Asegurar que images sea un array
     if (typeof data.images === 'string') {
       try {

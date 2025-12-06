@@ -5,7 +5,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, selectIsAuthenticated } from '@store/slices/authSlice';
 import { fetchProperties, setFilters, clearFilters } from '@store/slices/propertiesSlice';
 import { FaSearch, FaFilter, FaMapMarkerAlt, FaBed, FaBath, FaRuler, FaHeart, FaShareAlt, FaEye, FaPlus, FaSort, FaTh, FaList, FaPhone, FaEnvelope, FaHandshake, FaCalendarAlt } from 'react-icons/fa';
-import AdvancedSearchBar from '@components/properties/AdvancedSearchBar';
 import { toast } from 'react-toastify';
 import MakeOfferModal from '@components/offers/MakeOfferModal';
 import ScheduleVisitModal from '@components/appointments/ScheduleVisitModal';
@@ -300,7 +299,7 @@ const PropertiesPage = () => {
       <div className="position-relative">
         <Card.Img
           variant="top"
-          src={property.images?.[0] || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}
+          src={property.images?.[0]?.url || property.images?.[0] || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}
           style={{ height: '200px', objectFit: 'cover' }}
           onClick={() => handleViewProperty(property.id)}
           className="cursor-pointer"
@@ -309,14 +308,16 @@ const PropertiesPage = () => {
           <Badge bg="primary">{getPropertyTypeLabel(property.type)}</Badge>
         </div>
         <div className="position-absolute top-0 end-0 p-2">
-          <Button
-            variant="light"
-            size="sm"
-            className="rounded-circle me-1"
-            onClick={() => handleSaveProperty(property.id)}
-          >
-            <FaHeart className={savedProperties.includes(property.id) ? 'text-danger' : 'text-muted'} />
-          </Button>
+          {currentUser?.role === 'buyer' && (
+            <Button
+              variant="light"
+              size="sm"
+              className="rounded-circle me-1"
+              onClick={() => handleSaveProperty(property.id)}
+            >
+              <FaHeart className={savedProperties.includes(property.id) ? 'text-danger' : 'text-muted'} />
+            </Button>
+          )}
           <Button
             variant="light"
             size="sm"
@@ -412,7 +413,7 @@ const PropertiesPage = () => {
       <Row className="g-0">
         <Col md={4}>
           <Card.Img
-            src={property.images?.[0] || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}
+            src={property.images?.[0]?.url || property.images?.[0] || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}
             style={{ height: '200px', objectFit: 'cover' }}
             onClick={() => handleViewProperty(property.id)}
             className="cursor-pointer h-100"
@@ -429,13 +430,15 @@ const PropertiesPage = () => {
                 </p>
               </div>
               <div className="d-flex gap-2">
-                <Button
-                  variant="light"
-                  size="sm"
-                  onClick={() => handleSaveProperty(property.id)}
-                >
-                  <FaHeart className={savedProperties.includes(property.id) ? 'text-danger' : 'text-muted'} />
-                </Button>
+                {currentUser?.role === 'buyer' && (
+                  <Button
+                    variant="light"
+                    size="sm"
+                    onClick={() => handleSaveProperty(property.id)}
+                  >
+                    <FaHeart className={savedProperties.includes(property.id) ? 'text-danger' : 'text-muted'} />
+                  </Button>
+                )}
                 <Button
                   variant="light"
                   size="sm"
@@ -541,26 +544,6 @@ const PropertiesPage = () => {
         </Col>
       </Row>
 
-      {/* Búsqueda avanzada */}
-      <Row>
-        <Col>
-          <AdvancedSearchBar
-            onSearch={filters => {
-              // Actualiza los filtros locales con los filtros avanzados
-              setLocalFilters(prev => ({
-                ...prev,
-                ...filters
-              }));
-            }}
-            onSaveSearch={filters => {
-              // Guarda la búsqueda avanzada en localStorage
-              localStorage.setItem('savedAdvancedSearch', JSON.stringify(filters));
-              toast.success('¡Búsqueda avanzada guardada!');
-            }}
-          />
-        </Col>
-      </Row>
-
       {/* Barra de búsqueda y filtros */}
       <Row className="mb-4">
         <Col>
@@ -653,66 +636,96 @@ const PropertiesPage = () => {
 
                 {/* Filtros avanzados */}
                 {showFilters && (
-                  <Row className="mt-3 pt-3 border-top">
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Precio Mínimo</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="priceMin"
-                          value={localFilters.priceMin}
-                          onChange={handleFilterChange}
-                          placeholder="Ej: 200000000"
-                        />
-                      </Form.Group>
-                    </Col>
+                  <>
+                    <Row className="mt-3 pt-3 border-top">
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Precio Mínimo</Form.Label>
+                          <Form.Control
+                            type="number"
+                            name="priceMin"
+                            value={localFilters.priceMin}
+                            onChange={handleFilterChange}
+                            placeholder="Ej: 200000000"
+                          />
+                        </Form.Group>
+                      </Col>
 
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Precio Máximo</Form.Label>
-                        <Form.Control
-                          type="number"
-                          name="priceMax"
-                          value={localFilters.priceMax}
-                          onChange={handleFilterChange}
-                          placeholder="Ej: 500000000"
-                        />
-                      </Form.Group>
-                    </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Precio Máximo</Form.Label>
+                          <Form.Control
+                            type="number"
+                            name="priceMax"
+                            value={localFilters.priceMax}
+                            onChange={handleFilterChange}
+                            placeholder="Ej: 500000000"
+                          />
+                        </Form.Group>
+                      </Col>
 
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Habitaciones</Form.Label>
-                        <Form.Select
-                          name="bedrooms"
-                          value={localFilters.bedrooms}
-                          onChange={handleFilterChange}
-                        >
-                          <option value="">Cualquiera</option>
-                          <option value="1">1+</option>
-                          <option value="2">2+</option>
-                          <option value="3">3+</option>
-                          <option value="4">4+</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Habitaciones</Form.Label>
+                          <Form.Select
+                            name="bedrooms"
+                            value={localFilters.bedrooms}
+                            onChange={handleFilterChange}
+                          >
+                            <option value="">Cualquiera</option>
+                            <option value="1">1+</option>
+                            <option value="2">2+</option>
+                            <option value="3">3+</option>
+                            <option value="4">4+</option>
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
 
-                    <Col md={3}>
-                      <Form.Group>
-                        <Form.Label>Baños</Form.Label>
-                        <Form.Select
-                          name="bathrooms"
-                          value={localFilters.bathrooms}
-                          onChange={handleFilterChange}
-                        >
-                          <option value="">Cualquiera</option>
-                          <option value="1">1+</option>
-                          <option value="2">2+</option>
-                          <option value="3">3+</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Baños</Form.Label>
+                          <Form.Select
+                            name="bathrooms"
+                            value={localFilters.bathrooms}
+                            onChange={handleFilterChange}
+                          >
+                            <option value="">Cualquiera</option>
+                            <option value="1">1+</option>
+                            <option value="2">2+</option>
+                            <option value="3">3+</option>
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    {/* Más Filtros: Características */}
+                    <Row className="mt-3">
+                      <Col md={12}>
+                        <Card>
+                          <Card.Body>
+                            <Form.Label className="mb-2"><strong>Características</strong></Form.Label>
+                            <Row>
+                              <Col md={6}>
+                                <Form.Check type="checkbox" label="Amoblado" name="furnished" checked={localFilters.furnished === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, furnished: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Acepta Mascotas" name="petFriendly" checked={localFilters.petFriendly === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, petFriendly: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Ascensor" name="elevator" checked={localFilters.elevator === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, elevator: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Balcón" name="balcony" checked={localFilters.balcony === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, balcony: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Jardín" name="garden" checked={localFilters.garden === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, garden: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Piscina" name="pool" checked={localFilters.pool === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, pool: e.target.checked ? '1' : '' }))} />
+                              </Col>
+                              <Col md={6}>
+                                <Form.Check type="checkbox" label="Gimnasio" name="gym" checked={localFilters.gym === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, gym: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Seguridad" name="security" checked={localFilters.security === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, security: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Aire Acondicionado" name="airConditioning" checked={localFilters.airConditioning === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, airConditioning: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Calefacción" name="heating" checked={localFilters.heating === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, heating: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Internet" name="internet" checked={localFilters.internet === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, internet: e.target.checked ? '1' : '' }))} />
+                                <Form.Check type="checkbox" label="Lavandería" name="laundry" checked={localFilters.laundry === '1'} onChange={e => setLocalFilters(prev => ({ ...prev, laundry: e.target.checked ? '1' : '' }))} />
+                              </Col>
+                            </Row>
+                          </Card.Body>
+                        </Card>
+                      </Col>
+                    </Row>
+                  </>
                 )}
               </Form>
             </Card.Body>
@@ -874,7 +887,18 @@ const PropertiesPage = () => {
           <Button variant="secondary" onClick={() => setShowContactModal(false)}>
             Cancelar
           </Button>
-          <Button variant="outline-primary" onClick={() => window.open(`tel:${selectedProperty?.seller?.phone}`)}>
+          <Button
+            variant="outline-primary"
+            onClick={() => {
+              const phone = selectedProperty?.seller?.phone;
+              // Validar que el teléfono existe y tiene al menos 10 dígitos
+              if (phone && /^\+?\d{10,}$/.test(phone.replace(/\D/g, ''))) {
+                window.open(`tel:${phone}`);
+              } else {
+                toast.error('El número de teléfono del vendedor no es válido o está vacío.');
+              }
+            }}
+          >
             <FaPhone className="me-1" />
             Llamar
           </Button>

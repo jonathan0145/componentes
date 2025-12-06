@@ -230,12 +230,42 @@ const SellerDashboard = ({ user }) => {
                       <tr key={property.id}>
                         <td>
                           <div className="d-flex align-items-center">
-                            <img 
-                              src={property.image} 
-                              alt={property.title}
-                              className="rounded me-2"
-                              style={{ width: '50px', height: '50px', objectFit: 'cover' }}
-                            />
+                            {(() => {
+                                                            // Debug: mostrar imágenes recibidas y la imagen final que se usará
+                                                            console.log('IMAGES ARRAY:', property.images);
+                              // Mostrar imagen correctamente, sea string o objeto {url}
+                              let img = '';
+                              const fallback = 'https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2FzYXxlbnwwfHwwfHx8MA%3D%3D';
+                              let imagesArr = property.images;
+                              if (typeof imagesArr === 'string') {
+                                try {
+                                  imagesArr = JSON.parse(imagesArr);
+                                } catch (e) {
+                                  imagesArr = [];
+                                }
+                              }
+                              if (Array.isArray(imagesArr) && imagesArr.length > 0) {
+                                const firstImg = imagesArr[0];
+                                if (typeof firstImg === 'string' && firstImg.trim() !== '' && firstImg.trim().startsWith('http')) {
+                                  img = firstImg.trim();
+                                } else if (firstImg && typeof firstImg === 'object' && typeof firstImg.url === 'string' && firstImg.url.trim().startsWith('http')) {
+                                  img = firstImg.url.trim();
+                                } else {
+                                  img = fallback;
+                                }
+                              } else {
+                                img = fallback;
+                              }
+                              console.log('IMG DASHBOARD:', img);
+                              return (
+                                <img
+                                  src={img}
+                                  alt={property.title}
+                                  className="rounded me-2"
+                                  style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+                                />
+                              );
+                            })()}
                             <div>
                               <div className="fw-bold">{property.title}</div>
                               <small className="text-muted">{property.location}</small>

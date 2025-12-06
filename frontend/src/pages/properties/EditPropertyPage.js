@@ -561,7 +561,7 @@ const EditPropertyPage = () => {
                     <>
                       <Col md={3}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Piso</Form.Label>
+                          <Form.Label>Piso de ocupación</Form.Label>
                           <Form.Control
                             type="number"
                             name="floor"
@@ -569,6 +569,19 @@ const EditPropertyPage = () => {
                             onChange={handleChange}
                             placeholder="Ej: 5"
                             min="0"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Pisos de Edificación</Form.Label>
+                          <Form.Control
+                            type="number"
+                            name="totalFloors"
+                            value={formData.totalFloors}
+                            onChange={handleChange}
+                            placeholder="Ej: 10"
+                            min="1"
                           />
                         </Form.Group>
                       </Col>

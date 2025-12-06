@@ -12,10 +12,16 @@ export const fetchProperties = createAsyncThunk(
       // Si la respuesta es un objeto con clave properties, usar ese array
       let propertiesArr = Array.isArray(data) ? data : (data.properties || []);
       // Parsear imágenes si vienen como string
-      propertiesArr = propertiesArr.map(p => ({
-        ...p,
-        images: typeof p.images === 'string' ? (p.images ? JSON.parse(p.images) : []) : (p.images || [])
-      }));
+      propertiesArr = propertiesArr.map(p => {
+        let imgs = typeof p.images === 'string' ? (p.images ? JSON.parse(p.images) : []) : (p.images || []);
+        // Si es array de objetos, extraer url; si es array de strings, dejar igual
+        if (Array.isArray(imgs) && imgs.length > 0) {
+          if (typeof imgs[0] === 'object' && imgs[0] !== null && imgs[0].url) {
+            imgs = imgs.map(img => img.url);
+          }
+        }
+        return { ...p, images: imgs };
+      });
       // Retornar en el formato esperado por el slice
       return { properties: propertiesArr };
     } catch (error) {
@@ -99,7 +105,22 @@ const propertiesSlice = createSlice({
       })
       .addCase(fetchProperty.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentProperty = action.payload?.data || action.payload;
+        let property = action.payload?.data || action.payload;
+        // Parsear images y normalizar a array de strings (urls)
+        if (property && property.images) {
+          let imgs = typeof property.images === 'string'
+            ? (property.images ? JSON.parse(property.images) : [])
+            : (property.images || []);
+          if (Array.isArray(imgs) && imgs.length > 0) {
+            if (typeof imgs[0] === 'object' && imgs[0] !== null && imgs[0].url) {
+              imgs = imgs.map(img => img.url);
+            }
+          }
+          property.images = imgs;
+        } else if (property) {
+          property.images = [];
+        }
+        state.currentProperty = property;
       })
       .addCase(fetchProperty.rejected, (state, action) => {
         state.loading = false;
