@@ -9,7 +9,12 @@ const Appointment = sequelize.define('Appointment', {
   notes: { type: DataTypes.STRING },
   time: { type: DataTypes.STRING }, // Hora de la cita (HH:mm)
   status: { type: DataTypes.STRING, defaultValue: 'pending' }, // pending, confirmed, cancelled
-  createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+  confirmationCode: { type: DataTypes.STRING, allowNull: true, unique: true, comment: 'Código único de confirmación para la cita' },
+  createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  confirmedAt: { type: DataTypes.DATE, allowNull: true },
+  completedAt: { type: DataTypes.DATE, allowNull: true },
+  cancelledAt: { type: DataTypes.DATE, allowNull: true },
+  cancelReason: { type: DataTypes.STRING, allowNull: true }
 });
 
 module.exports = Appointment;

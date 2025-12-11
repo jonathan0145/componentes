@@ -6,6 +6,7 @@ import {
   fetchAppointments,
   cancelAppointment,
   confirmAppointment,
+  completeAppointment,
   selectAppointments,
   selectAppointmentsLoading,
   selectAppointmentsError
@@ -14,6 +15,18 @@ import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaUser, FaPhone, FaCheckCircle,
 import { toast } from 'react-toastify';
 
 const AppointmentsPage = () => {
+  // Completar cita
+  const handleCompleteAppointment = (appointmentId) => {
+    dispatch(completeAppointment(appointmentId))
+      .unwrap()
+      .then(() => {
+        toast.success('Cita marcada como completada');
+        dispatch(fetchAppointments());
+      })
+      .catch((err) => {
+        toast.error('Error al completar la cita: ' + err);
+      });
+  };
     // (Eliminado: no usar appointments antes de declararla)
   const currentUser = useSelector(selectCurrentUser);
   const dispatch = useDispatch();
@@ -73,20 +86,39 @@ const AppointmentsPage = () => {
   };
 
   const getStatusBadge = (status) => {
-    const config = {
-      scheduled: { bg: 'warning', text: 'Programada', icon: <FaClock /> },
-      confirmed: { bg: 'success', text: 'Confirmada', icon: <FaCheckCircle /> },
-      completed: { bg: 'info', text: 'Completada', icon: <FaCalendarCheck /> },
-      cancelled: { bg: 'danger', text: 'Cancelada', icon: <FaTimes /> },
-      rescheduled: { bg: 'secondary', text: 'Reprogramada', icon: <FaEdit /> }
-    };
-    
-    const statusConfig = config[status] || config.scheduled;
-    
+    // Normalizar el estado recibido
+    const normalized = (status || '').toLowerCase();
+    let config;
+    switch (normalized) {
+      case 'scheduled':
+      case 'pending':
+      case 'programada':
+      case 'pendiente':
+        config = { bg: 'warning', text: 'Programada', icon: <FaClock /> };
+        break;
+      case 'confirmed':
+      case 'confirmada':
+        config = { bg: 'success', text: 'Confirmada', icon: <FaCheckCircle /> };
+        break;
+      case 'completed':
+      case 'completada':
+        config = { bg: 'info', text: 'Completada', icon: <FaCalendarCheck /> };
+        break;
+      case 'cancelled':
+      case 'cancelada':
+        config = { bg: 'danger', text: 'Cancelada', icon: <FaTimes /> };
+        break;
+      case 'rescheduled':
+      case 'reprogramada':
+        config = { bg: 'secondary', text: 'Reprogramada', icon: <FaEdit /> };
+        break;
+      default:
+        config = { bg: 'warning', text: 'Programada', icon: <FaClock /> };
+    }
     return (
-      <Badge bg={statusConfig.bg} className="d-flex align-items-center gap-1">
-        {statusConfig.icon}
-        {statusConfig.text}
+      <Badge bg={config.bg} className="d-flex align-items-center gap-1">
+        {config.icon}
+        {config.text}
       </Badge>
     );
   };
@@ -129,6 +161,7 @@ const AppointmentsPage = () => {
         setShowCancelModal(false);
         setCancelReason('');
         setSelectedAppointment(null);
+        dispatch(fetchAppointments());
       })
       .catch((err) => {
         toast.error('Error al cancelar la cita: ' + err);
@@ -140,6 +173,7 @@ const AppointmentsPage = () => {
       .unwrap()
       .then(() => {
         toast.success('Cita confirmada exitosamente');
+        dispatch(fetchAppointments());
       })
       .catch((err) => {
         toast.error('Error al confirmar la cita: ' + err);
@@ -216,7 +250,7 @@ const AppointmentsPage = () => {
             <Col md={3}>
               <Card className="text-center">
                 <Card.Body>
-                  <FaCalendarCheck size={32} className="text-success mb-2" />
+                  <FaCalendarCheck size={32} className="mb-2" style={{ color: '#00bfff' }} />
                   <h5>{getFilteredAppointments('completed').length}</h5>
                   <small className="text-muted">Completadas</small>
                 </Card.Body>
@@ -250,7 +284,7 @@ const AppointmentsPage = () => {
                               <div className="d-flex justify-content-between align-items-start mb-3">
                                 {getStatusBadge(appointment.status)}
                                 <small className="text-muted">
-                                  {getTimeUntilAppointment(appointment.date, appointment.time)}
+                                  <strong>Código:</strong> {appointment.confirmationCode || 'Sin código'}
                                 </small>
                               </div>
 
@@ -307,10 +341,12 @@ const AppointmentsPage = () => {
                                   <strong>{appointment.time ? appointment.time : 'Sin hora'}</strong>
                                 </p>
                                 <p className="mb-0">
-                                  <FaUser className="me-2 text-primary" />
-                                  {appointment.user && appointment.user.profile
-                                    ? `${appointment.user.profile.firstName || ''} ${appointment.user.profile.lastName || ''}`.trim() || appointment.user.name
-                                    : appointment.user?.name || 'Sin nombre'}
+                                  <FaUser className="me-2 text-success" />
+                                  <strong>Visitante:</strong> {
+                                    appointment.user && appointment.user.profile
+                                      ? `${appointment.user.profile.firstName || ''} ${appointment.user.profile.lastName || ''}`.trim() || appointment.user.name
+                                      : appointment.user?.name || 'Sin nombre'
+                                  }
                                 </p>
                                 <p className="mb-0">
                                   <FaUser className="me-2 text-warning" />
@@ -331,24 +367,44 @@ const AppointmentsPage = () => {
                                   <FaEye className="me-1" />
                                   Ver
                                 </Button>
-                                {appointment.status === 'scheduled' && currentUser?.role !== 'buyer' && (
-                                  <Button
-                                    variant="success"
-                                    size="sm"
-                                    onClick={() => handleConfirmAppointment(appointment.id)}
-                                  >
-                                    <FaCheckCircle className="me-1" />
-                                    Confirmar
-                                  </Button>
+                                {/* Mostrar botones según estado */}
+                                {['scheduled', 'pending', 'programada', 'pendiente'].includes((appointment.status || '').toLowerCase()) && currentUser?.role !== 'buyer' && (
+                                  <>
+                                    <Button
+                                      variant="success"
+                                      size="sm"
+                                      onClick={() => handleConfirmAppointment(appointment.id)}
+                                    >
+                                      <FaCheckCircle className="me-1" />
+                                      Confirmar
+                                    </Button>
+                                    <Button
+                                      variant="outline-danger"
+                                      size="sm"
+                                      onClick={() => handleCancelAppointment(appointment)}
+                                    >
+                                      <FaTimes />
+                                    </Button>
+                                  </>
                                 )}
-                                {isUpcoming(appointment.date, appointment.time) && (
-                                  <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    onClick={() => handleCancelAppointment(appointment)}
-                                  >
-                                    <FaTimes />
-                                  </Button>
+                                {['confirmed', 'confirmada'].includes((appointment.status || '').toLowerCase()) && (
+                                  <>
+                                    <Button
+                                      variant="info"
+                                      size="sm"
+                                      onClick={() => handleCompleteAppointment(appointment.id)}
+                                    >
+                                        <FaCalendarCheck className="me-1" />
+                                        Completado
+                                    </Button>
+                                    <Button
+                                      variant="outline-danger"
+                                      size="sm"
+                                      onClick={() => handleCancelAppointment(appointment)}
+                                    >
+                                      <FaTimes />
+                                    </Button>
+                                  </>
                                 )}
                               </div>
                             </Card.Body>
@@ -383,26 +439,69 @@ const AppointmentsPage = () => {
                               </div>
 
                               <div className="mb-3">
-                                <img
-                                  src={appointment.property.image}
-                                  alt={appointment.property.title}
-                                  className="img-fluid rounded mb-2"
-                                  style={{ height: '120px', width: '100%', objectFit: 'cover' }}
-                                />
-                                <h6 className="mb-1">{appointment.property.title}</h6>
-                                <small className="text-muted">{appointment.property.location}</small>
+                                {(() => {
+                                  // Lógica robusta para obtener imagen (igual que en programadas)
+                                  let img = '';
+                                  const fallback = 'https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2FzYXxlbnwwfHwwfHx8MA%3D%3D';
+                                  let imagesArr = appointment.property?.images;
+                                  if (typeof imagesArr === 'string') {
+                                    try {
+                                      imagesArr = JSON.parse(imagesArr);
+                                    } catch (e) {
+                                      imagesArr = [];
+                                    }
+                                  }
+                                  if (Array.isArray(imagesArr) && imagesArr.length > 0) {
+                                    const firstImg = imagesArr[0];
+                                    if (typeof firstImg === 'string' && firstImg.trim() !== '' && firstImg.trim().startsWith('http')) {
+                                      img = firstImg.trim();
+                                    } else if (firstImg && typeof firstImg === 'object' && typeof firstImg.url === 'string' && firstImg.url.trim().startsWith('http')) {
+                                      img = firstImg.url.trim();
+                                    } else {
+                                      img = fallback;
+                                    }
+                                  } else if (appointment.property?.image && appointment.property.image.trim().startsWith('http')) {
+                                    img = appointment.property.image.trim();
+                                  } else {
+                                    img = fallback;
+                                  }
+                                  return (
+                                    <img
+                                      src={img}
+                                      alt={appointment.property && appointment.property.title ? appointment.property.title : 'Sin título'}
+                                      className="img-fluid rounded mb-2"
+                                      style={{ height: '120px', width: '100%', objectFit: 'cover' }}
+                                    />
+                                  );
+                                })()}
+                                <h6 className="mb-1">{appointment.property && appointment.property.title ? appointment.property.title : 'Sin título'}</h6>
+                                <small className="text-muted d-flex align-items-center">
+                                  <FaMapMarkerAlt className="me-1" />
+                                  {appointment.property && appointment.property.location ? appointment.property.location : 'Sin ubicación'}
+                                </small>
                               </div>
 
                               <div className="mb-3">
-                                <small className="text-muted">
-                                  <strong>Fecha:</strong> {formatDate(appointment.date)} - {appointment.time}
-                                </small>
-                                <br />
-                                <small className="text-muted">
-                                  <strong>Visitante:</strong> {appointment.user && appointment.user.profile
-                                    ? `${appointment.user.profile.firstName || ''} ${appointment.user.profile.lastName || ''}`.trim() || appointment.user.name
-                                    : appointment.user?.name || 'Sin nombre'}
-                                </small>
+                                <p className="mb-1">
+                                  <FaCalendarAlt className="me-2 text-primary" />
+                                  {formatDate(appointment.date)} - {appointment.time}
+                                </p>
+                                <p className="mb-0">
+                                  <FaUser className="me-2 text-success" />
+                                  <strong>Visitante:</strong> {
+                                    appointment.user && appointment.user.profile
+                                      ? `${appointment.user.profile.firstName || ''} ${appointment.user.profile.lastName || ''}`.trim() || appointment.user.name
+                                      : appointment.user?.name || 'Sin nombre'
+                                  }
+                                </p>
+                                <p className="mb-0">
+                                  <FaUser className="me-2 text-warning" />
+                                  <strong>Vendedor:</strong> {
+                                    appointment.property && appointment.property.seller && appointment.property.seller.name
+                                      ? appointment.property.seller.name
+                                      : 'Sin vendedor'
+                                  }
+                                </p>
                                 {appointment.completedAt && (
                                   <>
                                     <br />
@@ -453,16 +552,71 @@ const AppointmentsPage = () => {
                               </div>
 
                               <div className="mb-3">
-                                <h6 className="mb-1">{appointment.property.title}</h6>
-                                <small className="text-muted">{appointment.property.location}</small>
+                                {(() => {
+                                  // Lógica robusta para obtener imagen (igual que en programadas)
+                                  let img = '';
+                                  const fallback = 'https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8Y2FzYXxlbnwwfHwwfHx8MA%3D%3D';
+                                  let imagesArr = appointment.property?.images;
+                                  if (typeof imagesArr === 'string') {
+                                    try {
+                                      imagesArr = JSON.parse(imagesArr);
+                                    } catch (e) {
+                                      imagesArr = [];
+                                    }
+                                  }
+                                  if (Array.isArray(imagesArr) && imagesArr.length > 0) {
+                                    const firstImg = imagesArr[0];
+                                    if (typeof firstImg === 'string' && firstImg.trim() !== '' && firstImg.trim().startsWith('http')) {
+                                      img = firstImg.trim();
+                                    } else if (firstImg && typeof firstImg === 'object' && typeof firstImg.url === 'string' && firstImg.url.trim().startsWith('http')) {
+                                      img = firstImg.url.trim();
+                                    } else {
+                                      img = fallback;
+                                    }
+                                  } else if (appointment.property?.image && appointment.property.image.trim().startsWith('http')) {
+                                    img = appointment.property.image.trim();
+                                  } else {
+                                    img = fallback;
+                                  }
+                                  return (
+                                    <img
+                                      src={img}
+                                      alt={appointment.property && appointment.property.title ? appointment.property.title : 'Sin título'}
+                                      className="img-fluid rounded mb-2"
+                                      style={{ height: '120px', width: '100%', objectFit: 'cover' }}
+                                    />
+                                  );
+                                })()}
+                                <h6 className="mb-1">{appointment.property && appointment.property.title ? appointment.property.title : 'Sin título'}</h6>
+                                <small className="text-muted d-flex align-items-center">
+                                  <FaMapMarkerAlt className="me-1" />
+                                  {appointment.property && appointment.property.location ? appointment.property.location : 'Sin ubicación'}
+                                </small>
                               </div>
 
                               <div className="mb-3">
-                                <small className="text-muted">
-                                  <strong>Fecha original:</strong> {formatDate(appointment.date)} - {appointment.time}
-                                </small>
+                                <p className="mb-1">
+                                  <FaCalendarAlt className="me-2 text-primary" />
+                                  {formatDate(appointment.date)} - {appointment.time}
+                                </p>
+                                <p className="mb-0">
+                                  <FaUser className="me-2 text-success" />
+                                  <strong>Visitante:</strong> {
+                                    appointment.user && appointment.user.profile
+                                      ? `${appointment.user.profile.firstName || ''} ${appointment.user.profile.lastName || ''}`.trim() || appointment.user.name
+                                      : appointment.user?.name || 'Sin nombre'
+                                  }
+                                </p>
+                                <p className="mb-0">
+                                  <FaUser className="me-2 text-warning" />
+                                  <strong>Vendedor:</strong> {
+                                    appointment.property && appointment.property.seller && appointment.property.seller.name
+                                      ? appointment.property.seller.name
+                                      : 'Sin vendedor'
+                                  }
+                                </p>
                                 <br />
-                                <small className="text-muted">
+                                <small className="text-danger">
                                   <strong>Cancelada:</strong> {appointment.cancelledAt && formatDateTime(appointment.cancelledAt)}
                                 </small>
                                 {appointment.cancelReason && (
@@ -568,7 +722,7 @@ const AppointmentsPage = () => {
                     <strong>Estado:</strong> {getStatusBadge(selectedAppointment.status)}
                   </p>
                   <p>
-                    <strong>Fecha:</strong> {formatDate(selectedAppointment.date)}
+                    <strong>Fecha de la visita:</strong> {formatDate(selectedAppointment.date)}
                   </p>
                   <p>
                     <strong>Hora:</strong> {selectedAppointment.time}
@@ -599,10 +753,12 @@ const AppointmentsPage = () => {
                 </Col>
               </Row>
 
-              {selectedAppointment.visitor && selectedAppointment.visitor.notes && (
+              {(selectedAppointment.notes || (selectedAppointment.visitor && selectedAppointment.visitor.notes)) && (
                 <div className="mb-3">
-                  <h6>Notas del Visitante</h6>
-                  <p className="bg-light p-3 rounded">{selectedAppointment.visitor.notes}</p>
+                  <h6>Notas de la Cita</h6>
+                  <p className="bg-light p-3 rounded">
+                    {selectedAppointment.notes ? selectedAppointment.notes : selectedAppointment.visitor?.notes}
+                  </p>
                 </div>
               )}
 
@@ -616,7 +772,7 @@ const AppointmentsPage = () => {
               <ul className="list-unstyled">
                 <li className="mb-2">
                   <small className="text-muted">
-                    <strong>Programada:</strong> {formatDateTime(selectedAppointment.scheduledAt)}
+                    <strong>Creada el:</strong> {selectedAppointment.createdAt ? formatDateTime(selectedAppointment.createdAt) : 'Sin fecha de creación'}
                   </small>
                 </li>
                 {selectedAppointment.confirmedAt && (

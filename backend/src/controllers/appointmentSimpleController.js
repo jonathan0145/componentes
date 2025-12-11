@@ -37,7 +37,9 @@ exports.createSimpleAppointment = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    const appointment = await Appointment.create({ userId, propertyId, date, time, notes, status: 'pendiente' });
+    // Generar código único
+    const confirmationCode = 'VISIT-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+    const appointment = await Appointment.create({ userId, propertyId, date, time, notes, status: 'pendiente', confirmationCode });
     // Obtener datos de usuario y perfil
     const user = await User.findByPk(userId, { include: [{ model: Profile, as: 'profile' }] });
     console.log('Usuario completo:', JSON.stringify(user, null, 2));

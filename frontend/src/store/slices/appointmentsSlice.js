@@ -223,12 +223,13 @@ export const confirmAppointment = createAsyncThunk(
 
 export const completeAppointment = createAsyncThunk(
   'appointments/completeAppointment',
-  async ({ appointmentId, notes }, { rejectWithValue }) => {
+  async (appointmentId, { rejectWithValue }) => {
     try {
-      const completedAppointment = await mockAppointmentsAPI.completeAppointment(appointmentId, notes);
-      return completedAppointment;
+      // Llamar al endpoint real del backend
+      const res = await appointmentsService.completeAppointment(appointmentId);
+      return res.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );

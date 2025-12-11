@@ -40,6 +40,7 @@ const { body, validationResult } = require('express-validator');
  */
 const express = require('express');
 const appointmentController = require('../controllers/appointmentController');
+const appointmentStatusController = require('../controllers/appointmentStatusController');
 const { generalLimiter } = require('../middlewares/rateLimiters');
 const router = express.Router();
 
@@ -66,5 +67,12 @@ router.post('/',
 router.post('/schedule', generalLimiter, appointmentController.scheduleAppointment);
 router.put('/:id', generalLimiter, appointmentController.updateAppointment);
 router.delete('/:id', generalLimiter, appointmentController.deleteAppointment);
+
+// Confirmar cita
+router.post('/:id/confirm', generalLimiter, appointmentStatusController.confirmAppointment);
+// Completar cita
+router.post('/:id/complete', generalLimiter, appointmentStatusController.completeAppointment);
+// Cancelar cita
+router.post('/:id/cancel', generalLimiter, appointmentStatusController.cancelAppointment);
 
 module.exports = router;

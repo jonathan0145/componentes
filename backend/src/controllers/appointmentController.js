@@ -47,7 +47,9 @@ exports.scheduleAppointment = async (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-    const appointment = await Appointment.create({ userId, propertyId, date, time, status: 'pendiente' });
+    // Generar código único
+    const confirmationCode = 'VISIT-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+    const appointment = await Appointment.create({ userId, propertyId, date, time, status: 'pendiente', confirmationCode });
     res.status(201).json({
       success: true,
       data: appointment,
