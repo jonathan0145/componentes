@@ -14,7 +14,7 @@ const Permission = require('./Permission');
 const File = require('./File');
 
 // Relaciones principales
-User.hasMany(Property, { foreignKey: 'sellerId' });
+User.hasMany(Property, { foreignKey: 'sellerId', as: 'properties' });
 Property.belongsTo(User, { as: 'seller', foreignKey: 'sellerId' });
 
 Property.hasMany(Offer, { foreignKey: 'propertyId' });

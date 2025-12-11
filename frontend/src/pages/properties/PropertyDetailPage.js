@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser, selectIsAuthenticated } from '@store/slices/authSlice';
 import { fetchProperty } from '@store/slices/propertiesSlice';
+import { getUserProfileWithProperties } from '@services/authService';
 import propertiesService from '@services/propertiesService';
 import { 
   FaArrowLeft, FaHeart, FaShareAlt, FaMapMarkerAlt, FaBed, FaBath, FaRuler, 
@@ -48,6 +49,25 @@ const PropertyDetailPage = () => {
   const property = useSelector(state => state.properties.currentProperty);
   const loading = useSelector(state => state.properties.loading);
   const error = useSelector(state => state.properties.error);
+
+  // Estado para datos del vendedor
+  const [sellerProfile, setSellerProfile] = useState(null);
+  useEffect(() => {
+    if (property?.id) {
+      console.log('Llamando getUserProfileWithProperties con property.id:', property.id);
+      getUserProfileWithProperties(property.id)
+        .then(res => {
+          console.log('Respuesta de getUserProfileWithProperties:', res.data);
+          setSellerProfile(res.data.data);
+        })
+        .catch((err) => {
+          console.error('Error al obtener sellerProfile:', err);
+          setSellerProfile(null);
+        });
+    }
+    // Mostrar el valor de la variable de entorno
+    console.log('REACT_APP_BACKEND_URL:', process.env.REACT_APP_BACKEND_URL);
+  }, [property?.seller?.id, property?.id]);
 
   // Debug: mostrar imágenes en consola
   useEffect(() => {
@@ -449,22 +469,29 @@ const PropertyDetailPage = () => {
             <Card.Body>
               <div className="d-flex align-items-center mb-3">
                 <img
-                  src={property.seller?.avatar || '/default-avatar.png'}
-                  alt={property.seller?.name || 'Vendedor'}
+                  src={(() => {
+                    const avatar = sellerProfile?.avatar;
+                    if (avatar) {
+                      // Si el link es relativo, prepende la URL base
+                      return avatar.startsWith('http') ? avatar : `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000'}${avatar}`;
+                    }
+                    return '/default-avatar.png';
+                  })()}
+                  alt={sellerProfile?.name || property.seller?.name || 'Vendedor'}
                   className="rounded-circle me-3"
                   style={{ width: '60px', height: '60px', objectFit: 'cover' }}
                 />
                 <div>
                   <h6 className="mb-1">
-                    {property.seller?.name || 'Vendedor'}
+                    {sellerProfile?.name || property.seller?.name || 'Vendedor'}
                     {property.seller?.verified && (
                       <Badge bg="success" className="ms-2">Verificado</Badge>
                     )}
                   </h6>
                   <small className="text-muted">
-                    Miembro desde {property.seller?.memberSince || 'N/D'}
+                    Miembro desde {sellerProfile?.memberSince ? new Date(sellerProfile.memberSince).toLocaleDateString('es-CO') : 'N/D'}
                     {' • '}
-                    {property.seller?.propertiesCount ?? 0} propiedades
+                    {sellerProfile?.propertiesCount ?? property.seller?.propertiesCount ?? 0} propiedades
                   </small>
                 </div>
               </div>

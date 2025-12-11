@@ -153,10 +153,14 @@ const { body, validationResult } = require('express-validator');
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
+const userProfileController = require('../controllers/userProfileController');
 const { verifyToken, requireRole } = require('../middlewares/authMiddleware');
 const { generalLimiter } = require('../middlewares/rateLimiters');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
+
+// Perfil extendido de usuario por propiedad
+router.get('/profile-by-property/:id', userProfileController.getUserProfileWithProperties);
 
 router.put('/change-password', verifyToken, userController.changePassword);
 

@@ -1,5 +1,9 @@
 import apiClient from './apiClient';
 
+// Obtener perfil extendido de usuario por id de propiedad
+export const getUserProfileWithProperties = (propertyId) =>
+  apiClient.get(`/users/profile-by-property/${propertyId}`);
+
 const authService = {
   // Iniciar sesión
   login: async (email, password) => {
