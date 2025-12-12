@@ -8,6 +8,7 @@ import { FaSearch, FaFilter, FaMapMarkerAlt, FaBed, FaBath, FaRuler, FaHeart, Fa
 import { toast } from 'react-toastify';
 import MakeOfferModal from '@components/offers/MakeOfferModal';
 import ScheduleVisitModal from '@components/appointments/ScheduleVisitModal';
+import chatService from '@services/chatService';
 
 const PropertiesPage = () => {
   const navigate = useNavigate();
@@ -227,11 +228,25 @@ const PropertiesPage = () => {
     setShowContactModal(true);
   };
 
-  const handleStartChat = () => {
-    if (selectedProperty) {
-      // Crear nueva conversación o ir a chat existente
-      navigate(`/chat?property=${selectedProperty.id}&seller=${selectedProperty.seller.id}`);
-      setShowContactModal(false);
+  const handleStartChat = async () => {
+    if (!selectedProperty || !currentUser) return;
+
+    try {
+      // Intentar crear la conversación (el backend debe evitar duplicados)
+      const res = await chatService.createConversation({
+        propertyId: selectedProperty.id,
+        buyerId: currentUser.id,
+        sellerId: selectedProperty.seller.id
+      });
+      const conversationId = res?.data?.id || res?.data?.data?.id;
+      if (conversationId) {
+        navigate(`/chat?conversation=${conversationId}`);
+        setShowContactModal(false);
+      } else {
+        toast.error('No se pudo iniciar la conversación.');
+      }
+    } catch (err) {
+      toast.error('Error al crear la conversación.');
     }
   };
 

@@ -25,7 +25,14 @@ const ChatPage = () => {
       try {
         const res = await conversationsService.getConversations();
         const realConversations = res.data?.data || [];
-        setConversations(realConversations);
+        console.log('Conversaciones del backend:', realConversations);
+        // Construir array participants a partir de buyer, seller, intermediary
+        const conversationsWithParticipants = realConversations.map(conv => ({
+          ...conv,
+          participants: [conv.buyer, conv.seller, conv.intermediary].filter(Boolean)
+        }));
+        console.log('Conversaciones con participants:', conversationsWithParticipants);
+        setConversations(conversationsWithParticipants);
         // Si hay un parámetro de conversación en la URL, seleccionarla
         const conversationFromUrl = searchParams.get('conversation') || conversationId;
         if (conversationFromUrl) {

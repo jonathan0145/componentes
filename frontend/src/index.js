@@ -7,6 +7,10 @@ import { ToastContainer } from 'react-toastify';
 import App from './App';
 import store from '@store/store';
 import notificationService from '@services/notificationService';
+import { setAuthToken } from '@services/apiClient';
+// Asegurar que el token esté en apiClient al iniciar la app
+const token = localStorage.getItem('token');
+if (token) setAuthToken(token);
 
 // Importar estilos
 import 'bootstrap/dist/css/bootstrap.min.css';

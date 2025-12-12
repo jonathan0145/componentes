@@ -105,22 +105,29 @@ const ConversationsList = ({ conversations = [], selectedConversationId, onSelec
     }
   ];
 
-  const conversationsToShow = conversations.length > 0 ? conversations : defaultConversations;
+
+  // Estado local para reflejar cambios inmediatos en UI
+  const [localConversations, setLocalConversations] = useState(conversations.length > 0 ? conversations : defaultConversations);
+  React.useEffect(() => {
+    setLocalConversations(conversations.length > 0 ? conversations : defaultConversations);
+  }, [conversations]);
 
   // Funciones para gestión de conversaciones
   const handleArchiveConversation = (conversationId, e) => {
     e.stopPropagation();
-    // Aquí implementarías la lógica para archivar/desarchivar
-    console.log('Archivando conversación:', conversationId);
-    // En una implementación real, actualizarías el estado en Redux o llamarías a la API
+    setLocalConversations(prev => prev.map(conv =>
+      conv.id === conversationId ? { ...conv, isArchived: !conv.isArchived } : conv
+    ));
   };
 
   const handleMuteConversation = (conversationId, e) => {
     e.stopPropagation();
-    // Aquí implementarías la lógica para silenciar/activar notificaciones
-    console.log('Silenciando conversación:', conversationId);
-    // En una implementación real, actualizarías el estado en Redux o llamarías a la API
+    setLocalConversations(prev => prev.map(conv =>
+      conv.id === conversationId ? { ...conv, isMuted: !conv.isMuted } : conv
+    ));
   };
+
+  const conversationsToShow = localConversations;
 
   const handleConversationClick = (conversationId) => {
     if (onSelectConversation) {
@@ -134,26 +141,30 @@ const ConversationsList = ({ conversations = [], selectedConversationId, onSelec
   };
 
   const filteredConversations = conversationsToShow.filter(conversation => {
-    // Filtrar por archivadas/no archivadas
-    if (showArchived !== conversation.isArchived) return false;
-    
+    // Mostrar solo archivadas si showArchived está activo, si no, solo activas
+    if (showArchived) {
+      if (!conversation.isArchived) return false;
+    } else {
+      if (conversation.isArchived) return false;
+    }
+
     // Filtrar por término de búsqueda
     if (!searchTerm) return true;
-    
+
     const searchLower = searchTerm.toLowerCase();
-    
+
     switch (searchFilter) {
       case 'property':
-        return conversation.property?.title.toLowerCase().includes(searchLower);
+        return conversation.property?.title?.toLowerCase().includes(searchLower);
       case 'participants':
-        return conversation.participants?.some(p => p.name.toLowerCase().includes(searchLower));
+        return conversation.participants?.some(p => p.name?.toLowerCase().includes(searchLower));
       case 'messages':
-        return conversation.lastMessage?.text.toLowerCase().includes(searchLower);
+        return conversation.lastMessage?.text?.toLowerCase().includes(searchLower);
       default: // 'all'
         return (
-          conversation.property?.title.toLowerCase().includes(searchLower) ||
-          conversation.participants?.some(p => p.name.toLowerCase().includes(searchLower)) ||
-          conversation.lastMessage?.text.toLowerCase().includes(searchLower)
+          conversation.property?.title?.toLowerCase().includes(searchLower) ||
+          conversation.participants?.some(p => p.name?.toLowerCase().includes(searchLower)) ||
+          conversation.lastMessage?.text?.toLowerCase().includes(searchLower)
         );
     }
   });
@@ -255,6 +266,7 @@ const ConversationsList = ({ conversations = [], selectedConversationId, onSelec
               
               return (
                 <ListGroup.Item
+                  as="div"
                   key={conversation.id}
                   action
                   active={isSelected}
@@ -265,12 +277,28 @@ const ConversationsList = ({ conversations = [], selectedConversationId, onSelec
                   <div className="d-flex align-items-start">
                     {/* Avatar/Imagen de propiedad */}
                     <div className="me-3 position-relative">
-                      <img
-                        src={conversation.property?.image}
-                        alt={conversation.property?.title}
-                        className="rounded"
-                        style={{ width: '50px', height: '50px', objectFit: 'cover' }}
-                      />
+                      {(() => {
+                        let images = conversation.property?.images;
+                        if (typeof images === 'string') {
+                          try {
+                            images = JSON.parse(images);
+                          } catch (e) {
+                            images = [];
+                          }
+                        }
+                        return (
+                          <img
+                            src={
+                              images && Array.isArray(images) && images.length > 0
+                                ? images[0]
+                                : 'https://via.placeholder.com/50x50?text=Sin+Imagen'
+                            }
+                            alt={conversation.property?.title}
+                            className="rounded"
+                            style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                          />
+                        );
+                      })()}
                       {conversation.unreadCount > 0 && !conversation.isMuted && (
                         <Badge 
                           bg="danger" 

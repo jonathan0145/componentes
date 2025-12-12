@@ -56,7 +56,7 @@ exports.getUserConversations = async (req, res) => {
         { model: require('../models').User, as: 'buyer', attributes: ['id', 'name', 'avatar'] },
         { model: require('../models').User, as: 'seller', attributes: ['id', 'name', 'avatar'] },
         { model: require('../models').User, as: 'intermediary', attributes: ['id', 'name', 'avatar'] },
-        { model: require('../models').Property, as: 'property', attributes: ['id', 'title', 'address', 'lat', 'lng'] }
+        { model: require('../models').Property, as: 'property', attributes: ['id', 'title', 'address', 'lat', 'lng', 'images'] }
       ]
     });
     res.json({
