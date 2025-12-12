@@ -1,3 +1,5 @@
+// GET /conversations (todas las conversaciones del usuario autenticado)
+
 /**
  * @swagger
  * tags:
@@ -157,6 +159,12 @@ const { verifyToken } = require('../middlewares/authMiddleware');
 const { generalLimiter } = require('../middlewares/rateLimiters');
 const conversationController = require('../controllers/conversationController');
 const router = express.Router();
+
+// GET /conversations
+router.get('/', verifyToken, generalLimiter, conversationController.getUserConversations);
+
+// POST /conversations
+router.post('/', verifyToken, generalLimiter, conversationController.createConversation);
 
 // GET /conversations/:id/offers
 router.get('/:id/offers', verifyToken, generalLimiter, conversationController.getConversationOffers);

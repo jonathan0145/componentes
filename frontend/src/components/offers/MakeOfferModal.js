@@ -3,6 +3,7 @@ import { Modal, Form, Button, Alert, InputGroup, Card } from 'react-bootstrap';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser } from '@store/slices/authSlice';
 import { submitOffer, selectOffersLoading, selectOffersError, clearError } from '@store/slices/offersSlice';
+import conversationsService from '@services/conversationsService';
 import { FaDollarSign, FaCalendarAlt, FaFileContract } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -19,11 +20,11 @@ const MakeOfferModal = ({ show, onHide, property, onOfferSubmitted }) => {
     customPaymentTerms: '',
     financingPercentage: 80,
     closingDate: '',
-    conditions: '',
     validUntil: '',
     includesFurnishing: false,
     includesParking: true,
-    additionalNotes: ''
+    terms: '', // Condiciones de la oferta
+    additionalNotes: '' // Notas adicionales
   });
 
   const handleChange = (e) => {
@@ -61,12 +62,40 @@ const MakeOfferModal = ({ show, onHide, property, onOfferSubmitted }) => {
     }
 
     try {
+      // 1. Buscar o crear conversación antes de enviar la oferta
+      let conversationId = null;
+      const sellerId = property.seller?.id || property.ownerId;
+      // Buscar si ya existe una conversación para este comprador, vendedor y propiedad
+      const conversationsRes = await conversationsService.getConversations();
+      const existing = conversationsRes.data?.data?.find(conv =>
+        conv.property?.id === property.id &&
+        conv.participants?.some(p => p.id === currentUser.id) &&
+        conv.participants?.some(p => p.id === sellerId)
+      );
+      if (existing) {
+        conversationId = existing.id;
+      } else {
+        // Crear conversación
+        const convRes = await conversationsService.createConversation({
+          propertyId: property.id,
+          buyerId: currentUser.id,
+          sellerId: sellerId
+        });
+        conversationId = convRes.data?.data?.id || convRes.data?.id;
+      }
+      if (!conversationId) {
+        toast.error('No se pudo crear o encontrar una conversación para la oferta');
+        return;
+      }
+
+      // 2. Enviar la oferta con el conversationId
       const offer = {
         ...offerData,
         propertyId: property.id,
-        sellerId: property.seller?.id || property.ownerId,
+        sellerId: sellerId,
         buyerId: currentUser.id,
         amount: parseFloat(offerData.amount),
+        conversationId,
         property: {
           id: property.id,
           title: property.title,
@@ -77,12 +106,13 @@ const MakeOfferModal = ({ show, onHide, property, onOfferSubmitted }) => {
       };
 
       await dispatch(submitOffer(offer)).unwrap();
-      
       toast.success('Oferta enviada exitosamente');
       handleReset();
       onOfferSubmitted?.(offer); // Pasar los datos de la oferta
     } catch (error) {
-      toast.error(error || 'Error al enviar la oferta');
+      // Log detallado para depuración
+      console.error('Error al enviar la oferta:', error, error?.response);
+      toast.error(error?.message || error || 'Error al enviar la oferta');
     }
   };
 
@@ -134,6 +164,7 @@ const MakeOfferModal = ({ show, onHide, property, onOfferSubmitted }) => {
 
       <Form noValidate validated={validated} onSubmit={handleSubmit}>
         <Modal.Body>
+
           {/* Información de la propiedad */}
           <Card className="mb-4 bg-light">
             <Card.Body>
@@ -187,6 +218,25 @@ const MakeOfferModal = ({ show, onHide, property, onOfferSubmitted }) => {
               )}
             </Form.Group>
           </div>
+
+          {/* Condiciones de la Oferta (terms) */}
+          <div className="mb-4">
+            <Form.Group>
+              <Form.Label className="fw-bold">Condiciones de la Oferta</Form.Label>
+              <Form.Control
+                as="textarea"
+                name="terms"
+                value={offerData.terms}
+                onChange={handleChange}
+                placeholder="Ej: Sujeto a inspección técnica, revisión de documentos legales, etc."
+                rows={3}
+              />
+              <Form.Text className="text-muted">
+                Condiciones especiales que deben cumplirse para que la oferta sea válida.
+              </Form.Text>
+            </Form.Group>
+          </div>
+
 
           {/* Términos de pago */}
           <div className="mb-4">
@@ -286,17 +336,17 @@ const MakeOfferModal = ({ show, onHide, property, onOfferSubmitted }) => {
           {/* Condiciones y términos */}
           <div className="mb-4">
             <Form.Group>
-              <Form.Label className="fw-bold">Condiciones de la Oferta</Form.Label>
+              <Form.Label className="fw-bold">Notas Adicionales</Form.Label>
               <Form.Control
                 as="textarea"
                 rows={3}
                 name="conditions"
                 value={offerData.conditions}
                 onChange={handleChange}
-                placeholder="Ej: Sujeto a inspección técnica, revisión de documentos legales, etc."
+                placeholder="Información adicional que consideres relevante para el vendedor..."
               />
               <Form.Text className="text-muted">
-                Condiciones especiales que deben cumplirse para que la oferta sea válida
+                Notas adicionales que pueden ayudar a clarificar la oferta
               </Form.Text>
             </Form.Group>
           </div>
@@ -324,21 +374,6 @@ const MakeOfferModal = ({ show, onHide, property, onOfferSubmitted }) => {
               onChange={handleChange}
               className="mb-2"
             />
-          </div>
-
-          {/* Notas adicionales */}
-          <div className="mb-3">
-            <Form.Group>
-              <Form.Label className="fw-bold">Notas Adicionales</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                name="additionalNotes"
-                value={offerData.additionalNotes}
-                onChange={handleChange}
-                placeholder="Información adicional que consideres relevante para el vendedor..."
-              />
-            </Form.Group>
           </div>
 
           {/* Advertencia legal */}

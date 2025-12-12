@@ -7,6 +7,7 @@ import { selectCurrentUser } from '@store/slices/authSlice';
 import ConversationsList from '@components/chat/ConversationsList';
 import ChatWindow from '@components/chat/ChatWindow';
 import ConversationInfo from '@components/chat/ConversationInfo';
+import conversationsService from '@services/conversationsService';
 
 const ChatPage = () => {
   const { conversationId } = useParams();
@@ -18,22 +19,25 @@ const ChatPage = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [conversations, setConversations] = useState([]);
 
-  // Cargar conversaciones desde localStorage al montar el componente
+  // Cargar conversaciones reales desde el backend al montar el componente
   useEffect(() => {
-    const loadConversations = () => {
-      const storedConversations = JSON.parse(localStorage.getItem('conversations') || '[]');
-      setConversations(storedConversations);
-      
-      // Si hay un parámetro de conversación en la URL, seleccionarla
-      const conversationFromUrl = searchParams.get('conversation') || conversationId;
-      if (conversationFromUrl) {
-        const conversation = storedConversations.find(conv => conv.id === conversationFromUrl);
-        if (conversation) {
-          setSelectedConversation(conversation);
+    const loadConversations = async () => {
+      try {
+        const res = await conversationsService.getConversations();
+        const realConversations = res.data?.data || [];
+        setConversations(realConversations);
+        // Si hay un parámetro de conversación en la URL, seleccionarla
+        const conversationFromUrl = searchParams.get('conversation') || conversationId;
+        if (conversationFromUrl) {
+          const conversation = realConversations.find(conv => String(conv.id) === String(conversationFromUrl));
+          if (conversation) {
+            setSelectedConversation(conversation);
+          }
         }
+      } catch (err) {
+        setConversations([]);
       }
     };
-
     loadConversations();
   }, [searchParams, conversationId]);
 

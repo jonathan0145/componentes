@@ -47,10 +47,14 @@ Role.hasMany(Permission, { foreignKey: 'roleId' });
 Permission.belongsTo(Role, { foreignKey: 'roleId' });
 User.belongsTo(Role, { foreignKey: 'role', targetKey: 'name' });
 
+
 // Chat participantes
 Chat.belongsTo(User, { as: 'buyer', foreignKey: 'buyerId' });
 Chat.belongsTo(User, { as: 'seller', foreignKey: 'sellerId' });
 Chat.belongsTo(User, { as: 'intermediary', foreignKey: 'intermediaryId' });
+
+// Asociación faltante: Chat pertenece a Property
+Chat.belongsTo(Property, { as: 'property', foreignKey: 'propertyId' });
 
 module.exports = {
   sequelize,

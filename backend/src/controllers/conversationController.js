@@ -1,3 +1,84 @@
+// POST /conversations - Crear una nueva conversación
+exports.createConversation = async (req, res) => {
+  try {
+    const { propertyId, buyerId, sellerId, intermediaryId, participants } = req.body;
+    if (!propertyId || !buyerId || !sellerId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'CONV_CREATE_001', message: 'Faltan campos obligatorios: propertyId, buyerId, sellerId' },
+        timestamp: new Date().toISOString()
+      });
+    }
+    const chat = await require('../models').Chat.create({
+      propertyId,
+      buyerId,
+      sellerId,
+      intermediaryId: intermediaryId || null,
+      participants: participants || null
+    });
+    res.status(201).json({
+      success: true,
+      data: chat,
+      message: 'Conversación creada correctamente',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error al crear conversación:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'CONV_CREATE_002',
+        message: 'Error al crear conversación',
+        details: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+// GET /conversations - Listar todas las conversaciones del usuario autenticado
+exports.getUserConversations = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: { code: 'AUTH_001', message: 'No autenticado' }, timestamp: new Date().toISOString() });
+    }
+    // Buscar todas las conversaciones donde el usuario es buyer, seller o intermediary
+    const conversations = await require('../models').Chat.findAll({
+      where: {
+        [require('sequelize').Op.or]: [
+          { buyerId: userId },
+          { sellerId: userId },
+          { intermediaryId: userId }
+        ]
+      },
+      order: [['updatedAt', 'DESC']],
+      include: [
+        { model: require('../models').User, as: 'buyer', attributes: ['id', 'name', 'avatar'] },
+        { model: require('../models').User, as: 'seller', attributes: ['id', 'name', 'avatar'] },
+        { model: require('../models').User, as: 'intermediary', attributes: ['id', 'name', 'avatar'] },
+        { model: require('../models').Property, as: 'property', attributes: ['id', 'title', 'address', 'lat', 'lng'] }
+      ]
+    });
+    res.json({
+      success: true,
+      data: conversations,
+      message: 'Conversaciones obtenidas correctamente',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error en getUserConversations:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'CONV_LIST_001',
+        message: 'Error al obtener conversaciones',
+        details: error.message,
+        stack: error.stack
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
 const { Chat, Offer, Appointment, Message, User } = require('../models');
 
 // GET /conversations/:id/offers
