@@ -565,7 +565,13 @@ const PropertyDetailPage = () => {
                 <Button 
                   variant="outline-primary" 
                   size="sm" 
-                  onClick={() => window.open(`https://maps.google.com/?q=${property.coordinates.lat},${property.coordinates.lng}`)}
+                  onClick={() => {
+                    if (property.lat && property.lng) {
+                      window.open(`https://maps.google.com/?q=${property.lat},${property.lng}`);
+                    } else {
+                      alert('Esta propiedad no tiene coordenadas geográficas registradas.');
+                    }
+                  }}
                 >
                   Ver en Google Maps
                 </Button>

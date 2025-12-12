@@ -170,7 +170,9 @@ exports.getPropertyById = async (req, res) => {
         data.images = [];
       }
     }
-    console.log('DETALLE DE PROPIEDAD ENVIADO:', data); // Log para depuración
+    // Incluir lat y lng explícitamente en la respuesta
+    data.lat = property.lat;
+    data.lng = property.lng;
     data.features = {
       furnished: data.furnished ?? false,
       petFriendly: data.petFriendly ?? false,
@@ -213,7 +215,8 @@ exports.createProperty = async (req, res) => {
       propertyType, status,
       features = {},
       images,
-      yearBuilt, floor, totalFloors, daysOnMarket, views
+      yearBuilt, floor, totalFloors, daysOnMarket, views,
+      lat, lng
     } = req.body;
 
     if (!title || !price || !address || !sellerId) {
@@ -286,7 +289,9 @@ exports.createProperty = async (req, res) => {
       floor,
       totalFloors,
       daysOnMarket,
-      views
+      views,
+      lat,
+      lng
     });
     res.status(201).json({
       success: true,
@@ -319,7 +324,7 @@ exports.updateProperty = async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
-    const { price, title, yearBuilt, floor, totalFloors, daysOnMarket, views } = req.body;
+    const { price, title, yearBuilt, floor, totalFloors, daysOnMarket, views, lat, lng } = req.body;
     if (price && (typeof price !== 'number' || price <= 0)) {
       return res.status(400).json({
         success: false,
@@ -359,7 +364,9 @@ exports.updateProperty = async (req, res) => {
       floor,
       totalFloors,
       daysOnMarket,
-      views
+      views,
+      lat: lat !== undefined ? lat : property.lat,
+      lng: lng !== undefined ? lng : property.lng
     });
     res.json({
       success: true,

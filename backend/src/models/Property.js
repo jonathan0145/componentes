@@ -37,6 +37,8 @@ const Property = sequelize.define('Property', {
   totalFloors: { type: DataTypes.INTEGER },
   daysOnMarket: { type: DataTypes.INTEGER },
   views: { type: DataTypes.INTEGER, defaultValue: 0 },
+  lat: { type: DataTypes.FLOAT, allowNull: true },
+  lng: { type: DataTypes.FLOAT, allowNull: true },
   createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   updatedAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 });
