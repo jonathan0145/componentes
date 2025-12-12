@@ -1,3 +1,108 @@
+// GET /conversations/:id/messages - Obtener mensajes de una conversación
+exports.getConversationMessages = async (req, res) => {
+  try {
+    const conversationId = req.params.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: { code: 'AUTH_001', message: 'No autenticado' }, timestamp: new Date().toISOString() });
+    }
+    // Verifica que la conversación existe y el usuario pertenece
+    const chat = await require('../models').Chat.findByPk(conversationId);
+    if (!chat) {
+      return res.status(404).json({ success: false, error: { code: 'CONV_NOT_FOUND', message: 'Conversación no encontrada' }, timestamp: new Date().toISOString() });
+    }
+    if (![chat.buyerId, chat.sellerId, chat.intermediaryId].includes(userId)) {
+      return res.status(403).json({ success: false, error: { code: 'CONV_403', message: 'No tienes permiso para ver los mensajes de esta conversación' }, timestamp: new Date().toISOString() });
+    }
+    // Buscar mensajes
+    const Message = require('../models').Message;
+    const User = require('../models').User;
+    const messages = await Message.findAll({
+      where: { chatId: conversationId },
+      order: [['createdAt', 'ASC']],
+      include: [
+        { model: User, as: 'sender', attributes: ['id', 'name', 'avatar'] }
+      ]
+    });
+    res.json({
+      success: true,
+      data: messages,
+      message: 'Mensajes obtenidos correctamente',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'MSG_LIST_001', message: 'Error al obtener mensajes', details: error.message },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+// POST /conversations/:id/messages - Crear mensaje de texto
+exports.createMessageInConversation = async (req, res) => {
+  try {
+    const conversationId = req.params.id;
+    const { text } = req.body;
+    const senderId = req.user?.id;
+
+    if (!text || !senderId) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'MSG_CREATE_001', message: 'Faltan campos obligatorios: text, senderId' },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Verifica que la conversación exista
+    const chat = await require('../models').Chat.findByPk(conversationId);
+    if (!chat) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'CONV_NOT_FOUND', message: 'Conversación no encontrada' },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Crea el mensaje
+    const Message = require('../models').Message;
+    const message = await Message.create({
+      chatId: conversationId,
+      senderId,
+      content: text,
+      createdAt: new Date()
+    });
+
+    // (Opcional) Emitir por socket si tienes sockets
+    try {
+      const { getIo } = require('../services/socketProvider');
+      const io = getIo();
+      io.to(`conversation:${conversationId}`).emit('new_message', {
+        id: message.id,
+        conversationId,
+        content: text,
+        senderId,
+        type: 'text',
+        isRead: false,
+        createdAt: message.createdAt
+      });
+    } catch (e) {
+      // No socket, no pasa nada
+    }
+
+    res.status(201).json({
+      success: true,
+      data: message,
+      message: 'Mensaje enviado correctamente',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'MSG_CREATE_002', message: 'Error al enviar mensaje', details: error.message },
+      timestamp: new Date().toISOString()
+    });
+  }
+};
 // POST /conversations - Crear una nueva conversación
 exports.createConversation = async (req, res) => {
   try {

@@ -238,7 +238,7 @@ const ConversationsList = ({ conversations = [], selectedConversationId, onSelec
       </div>
 
       {/* Lista de conversaciones */}
-      <div className="flex-grow-1 overflow-auto">
+      <div className="flex-grow-1 overflow-auto" style={{ minHeight: 0, maxHeight: 'calc(100vh - 220px)' }}>
         {filteredConversations.length === 0 ? (
           <div className="p-4 text-center text-muted">
             {searchTerm ? (

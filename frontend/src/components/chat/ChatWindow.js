@@ -28,108 +28,31 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [typingUsers, setTypingUsers] = useState([]); // Nuevos usuarios escribiendo
   const [pendingAgentInvitations, setPendingAgentInvitations] = useState([]); // Invitaciones pendientes
-  
-  // Usar mensajes del store si existen, sino usar los de ejemplo
-  const [messages, setMessages] = useState(messagesFromStore?.length > 0 ? messagesFromStore : [
-    {
-      id: 1,
-      text: 'Hola, me interesa esta propiedad. ¿Podríamos agendar una visita?',
-      sender: { id: 2, name: 'Ana García', role: 'buyer' },
-      timestamp: new Date(Date.now() - 3600000),
-      read: true
-    },
-    {
-      id: 2,
-      text: 'Por supuesto! Esta propiedad tiene excelente ubicación y acabados de primera. ¿Qué día te vendría bien?',
-      sender: { id: 1, name: 'Carlos Rodríguez', role: 'seller' },
-      timestamp: new Date(Date.now() - 3000000),
-      read: true
-    },
-    {
-      id: 3,
-      text: 'Me gustaría visitarla este fin de semana si es posible.',
-      sender: { id: 2, name: 'Ana García', role: 'buyer' },
-      timestamp: new Date(Date.now() - 1800000),
-      read: false
-    },
-    {
-      id: 4,
-      type: 'file',
-      file: {
-        name: 'planos-propiedad.pdf',
-        size: 2048576,
-        type: 'application/pdf',
-        url: 'https://example.com/files/planos-propiedad.pdf'
-      },
-      sender: { id: 1, name: 'Carlos Rodríguez', role: 'seller' },
-      timestamp: new Date(Date.now() - 1200000),
-      read: false
-    },
-    {
-      id: 5,
-      text: 'Te envío los planos actualizados de la propiedad para que los revises',
-      sender: { id: 1, name: 'Carlos Rodríguez', role: 'seller' },
-      timestamp: new Date(Date.now() - 1200000),
-      read: false
-    },
-    {
-      id: 6,
-      type: 'file',
-      file: {
-        name: 'fachada-casa.jpg',
-        size: 1536000,
-        type: 'image/jpeg',
-        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400',
-        preview: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400'
-      },
-      sender: { id: 2, name: 'Ana García', role: 'buyer' },
-      timestamp: new Date(Date.now() - 600000),
-      read: false
-    },
-    {
-      id: 7,
-      text: '¡Perfecto! Los planos se ven muy bien. Aquí tienes una foto de la fachada que tomé la última vez.',
-      sender: { id: 2, name: 'Ana García', role: 'buyer' },
-      timestamp: new Date(Date.now() - 600000),
-      read: false
-    },
-    {
-      id: 8,
-      type: 'offer',
-      offer: {
-        amount: 145000,
-        status: 'pending',
-        timestamp: new Date(Date.now() - 300000),
-        validUntil: new Date(Date.now() + 86400000 * 7), // 7 días
-        notes: 'Oferta inicial por la propiedad. Estoy muy interesada.',
-        paymentTerms: 'financing',
-        closingDate: new Date(Date.now() + 86400000 * 30) // 30 días
-      },
-      sender: { id: 2, name: 'Ana García', role: 'buyer' },
-      timestamp: new Date(Date.now() - 300000),
-      read: false
+  // Usar solo mensajes reales del store
+  const messages = messagesFromStore || [];
+
+  // Cargar mensajes reales del backend al cambiar la conversación
+  useEffect(() => {
+    if (conversation?.id) {
+      // Importación dinámica para evitar problemas de dependencias circulares
+      const { fetchMessages } = require('@store/slices/chatSlice');
+      dispatch(fetchMessages({ conversationId: conversation.id }));
     }
-  ]);
+  }, [conversation?.id, dispatch]);
 
   // Efectos para Socket.io
   useEffect(() => {
-    if (conversation?.id && isConnected) {
-      // Unirse a la conversación cuando se monta el componente
-      socketService.joinConversation(conversation.id);
-      
+    if (conversation?.id && isConnected && currentUser?.id) {
+      // Unirse a la conversación cuando se monta el componente, enviando también el userId
+      socketService.joinConversation(conversation.id, currentUser.id);
       return () => {
         // Salir de la conversación cuando se desmonta
         socketService.leaveConversation(conversation.id);
       };
     }
-  }, [conversation?.id, isConnected]);
+  }, [conversation?.id, isConnected, currentUser?.id]);
 
-  // Actualizar mensajes cuando cambien en el store
-  useEffect(() => {
-    if (messagesFromStore?.length > 0) {
-      setMessages(messagesFromStore);
-    }
-  }, [messagesFromStore]);
+  // Eliminar efecto de sincronización local de mensajes, solo usar store
 
   // Simular usuarios escribiendo (para demostración)
   useEffect(() => {
@@ -163,26 +86,11 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
       const messageData = {
         text: message,
         type: 'text',
-        conversationId: conversation.id
       };
-
-      // Enviar mensaje a través de Socket.io si está conectado
-      if (isConnected) {
-        socketService.sendMessage(conversation.id, messageData);
-      } else {
-        // Fallback: agregar mensaje localmente si no hay conexión
-        const newMessage = {
-          id: Date.now(),
-          text: message,
-          sender: currentUser || { id: 1, name: 'Usuario Actual', role: 'buyer' },
-          timestamp: new Date(),
-          read: false
-        };
-        setMessages([...messages, newMessage]);
-      }
-      
+      // Enviar mensaje real usando Redux y backend
+      // Usar el thunk real de Redux Toolkit
+      dispatch(require('@store/slices/chatSlice').sendMessage({ conversationId: conversation.id, messageData }));
       setMessage('');
-      
       // Detener typing si está activo
       if (isTyping) {
         socketService.stopTyping(conversation.id);
@@ -224,16 +132,6 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
   };
 
   const handleFileUploaded = (fileData) => {
-    // Crear mensaje con archivo
-    const fileMessage = {
-      id: Date.now(),
-      type: 'file',
-      file: fileData,
-      sender: currentUser || { id: 1, name: 'Usuario Actual', role: 'buyer' },
-      timestamp: new Date(),
-      read: false
-    };
-
     if (conversation?.id && isConnected) {
       // Enviar mensaje de archivo a través de Socket.io
       socketService.sendMessage(conversation.id, {
@@ -242,11 +140,8 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
         conversationId: conversation.id
       });
     } else {
-      // Fallback: agregar mensaje localmente
-      setMessages(prev => [...prev, fileMessage]);
+      toast.error('No se pudo enviar el archivo. Conexión no disponible.');
     }
-
-    // Cerrar el modal después de subir el archivo
     setShowFileModal(false);
   };
 
@@ -422,24 +317,22 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
   };
 
   const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const dateObj = new Date(timestamp);
+    if (isNaN(dateObj.getTime())) return '';
     const today = new Date();
-    const messageDate = new Date(timestamp);
-    
-    if (messageDate.toDateString() === today.toDateString()) {
+    if (dateObj.toDateString() === today.toDateString()) {
       return 'Hoy';
     }
-    
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (messageDate.toDateString() === yesterday.toDateString()) {
+    if (dateObj.toDateString() === yesterday.toDateString()) {
       return 'Ayer';
     }
-    
     return new Intl.DateTimeFormat('es-CO', {
       day: 'numeric',
       month: 'short'
-    }).format(messageDate);
+    }).format(dateObj);
   };
 
   const getRoleColor = (role) => {
@@ -458,6 +351,17 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
         <div className="text-center">
           <h5 className="text-muted">Selecciona una conversación</h5>
           <p className="text-muted">Elige una conversación para comenzar a chatear</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentUser || !currentUser.id) {
+    return (
+      <div className="h-100 d-flex align-items-center justify-content-center">
+        <div className="text-center">
+          <h5 className="text-muted">Cargando usuario...</h5>
+          <p className="text-muted">Por favor espera, estamos obteniendo tu información.</p>
         </div>
       </div>
     );
@@ -576,11 +480,11 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
       </div>
 
       {/* Área de mensajes */}
-      <div className="flex-grow-1 overflow-auto p-3" style={{ backgroundColor: '#f8f9fa' }}>
+      <div className="flex-grow-1 overflow-auto p-3" style={{ backgroundColor: '#f8f9fa', minHeight: 0, maxHeight: 'calc(100vh - 220px)' }}>
         {messages.map((msg, index) => {
           const showDate = index === 0 || 
             formatDate(messages[index - 1].timestamp) !== formatDate(msg.timestamp);
-          const isCurrentUser = msg.sender?.id === (currentUser?.id || 1);
+          const isCurrentUser = msg.sender && msg.sender.id === (currentUser?.id || 1);
           
           return (
             <div key={msg.id}>
@@ -872,7 +776,7 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
                       </div>
                     ) : (
                       // Mensaje de texto normal
-                      <div>{msg.text}</div>
+                      <div>{msg.text || msg.content}</div>
                     )}
                     
                     <div className={`d-flex justify-content-end align-items-center mt-1 ${

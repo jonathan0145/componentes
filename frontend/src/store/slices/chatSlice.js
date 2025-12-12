@@ -78,7 +78,7 @@ export const markMessagesAsRead = createAsyncThunk(
 const initialState = {
   conversations: [],
   currentConversation: null,
-  messages: [],
+  messages: {}, // { [conversationId]: [mensajes] }
   typingUsers: {},
   onlineUsers: [],
   isConnected: false,
@@ -101,18 +101,32 @@ const chatSlice = createSlice({
     },
     
     addMessage: (state, action) => {
-      const message = action.payload;
-      const existingIndex = state.messages.findIndex(m => m.id === message.id);
-      
-      if (existingIndex === -1) {
-        state.messages.push(message);
-        // Ordenar por fecha
-        state.messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      let message = action.payload;
+      const conversationId = message.conversationId || message.chatId;
+      if (!conversationId) return;
+      if (!state.messages[conversationId]) state.messages[conversationId] = [];
+      // Si el mensaje no tiene sender pero tiene senderId, intentar construirlo
+      if (!message.sender && message.senderId) {
+        // Buscar en la conversación los participantes
+        const conv = state.conversations.find(c => c.id === conversationId);
+        let sender = null;
+        if (conv) {
+          // Buscar en buyer, seller, intermediary
+          if (conv.buyer && conv.buyer.id === message.senderId) sender = { ...conv.buyer, role: 'buyer' };
+          else if (conv.seller && conv.seller.id === message.senderId) sender = { ...conv.seller, role: 'seller' };
+          else if (conv.intermediary && conv.intermediary.id === message.senderId) sender = { ...conv.intermediary, role: 'agent' };
+        }
+        // Si no se encuentra, usar solo el id
+        message = { ...message, sender: sender || { id: message.senderId } };
       }
-      
+      const exists = state.messages[conversationId].some(m => m.id === message.id);
+      if (!exists) {
+        state.messages[conversationId].push(message);
+        state.messages[conversationId].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
       // Actualizar último mensaje en la conversación
       const conversationIndex = state.conversations.findIndex(
-        c => c.id === message.conversationId
+        c => c.id === conversationId
       );
       if (conversationIndex !== -1) {
         state.conversations[conversationIndex].lastMessage = message;
@@ -226,16 +240,17 @@ const chatSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.messagesLoading = false;
-        const { messages, pagination } = action.payload;
-        
-        if (pagination?.nextCursor) {
-          // Paginación - agregar mensajes al inicio
-          state.messages = [...messages, ...state.messages];
-        } else {
-          // Primera carga
-          state.messages = messages || [];
+        const { messages, pagination, conversationId } = action.payload;
+        const convId = conversationId || (messages && messages[0]?.conversationId) || (messages && messages[0]?.chatId);
+        if (convId) {
+          if (pagination?.nextCursor && state.messages[convId]) {
+            // Paginación - agregar mensajes al inicio
+            state.messages[convId] = [...messages, ...state.messages[convId]];
+          } else {
+            // Primera carga
+            state.messages[convId] = messages || [];
+          }
         }
-        
         state.pagination = pagination || { hasMore: false, nextCursor: null };
       })
       .addCase(fetchMessages.rejected, (state, action) => {

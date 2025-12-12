@@ -23,13 +23,17 @@ class SocketService {
     const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:3000';
 
     this.socket = io(SOCKET_URL, {
-      auth: {
-        token,
-      },
       transports: ['websocket', 'polling'],
     });
 
     this.setupEventListeners();
+
+    // Emitir evento authenticate con el token JWT
+    this.socket.on('connect', () => {
+      if (token) {
+        this.socket.emit('authenticate', { token });
+      }
+    });
   }
 
   disconnect() {
@@ -76,10 +80,9 @@ class SocketService {
       
       // Mostrar notificación si la ventana no está en foco o es de otro usuario
       const currentUser = store.getState().auth.user;
-      if (message.sender.id !== currentUser?.id) {
+      if (message.sender && message.sender.id !== currentUser?.id) {
         // Mostrar notificación nativa
         notificationService.showMessageNotification(message, message.conversation);
-        
         // Emitir evento para el toast
         window.dispatchEvent(new CustomEvent('new-message-notification', {
           detail: { message, conversation: message.conversation }
@@ -165,9 +168,9 @@ class SocketService {
     }
   }
 
-  joinConversation(conversationId) {
+  joinConversation(conversationId, userId) {
     if (this.socket) {
-      this.socket.emit('join_conversation', { conversationId });
+      this.socket.emit('join_conversation', { conversationId, userId });
     }
   }
 
