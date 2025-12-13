@@ -14,6 +14,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Servir archivos estáticos de uploads (avatars, etc.)
 app.use('/uploads', express.static('uploads'));
+// Permitir también acceso vía /api/v1/uploads para compatibilidad frontend
+app.use('/api/v1/uploads', express.static('uploads'));
 
 // Crear roles básicos si no existen
 async function ensureDefaultRoles() {

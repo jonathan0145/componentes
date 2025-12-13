@@ -1,6 +1,15 @@
 const express = require('express');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const path = require('path');
+const storage = multer.diskStorage({
+	destination: 'uploads/',
+	filename: (req, file, cb) => {
+		const ext = path.extname(file.originalname);
+		const basename = Date.now() + '-' + Math.round(Math.random() * 1E9);
+		cb(null, basename + ext);
+	}
+});
+const upload = multer({ storage });
 const { verifyToken } = require('../middlewares/authMiddleware');
 const { generalLimiter } = require('../middlewares/rateLimiters');
 const conversationController = require('../controllers/conversationController');

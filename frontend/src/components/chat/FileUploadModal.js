@@ -61,47 +61,19 @@ const FileUploadModal = ({ show, onHide, onFileUploaded, conversationId }) => {
 
         setUploadProgress(prev => ({ ...prev, [fileObj.id]: 0 }));
 
-        // Simular progreso para demo (en producción sería real)
-        const progressInterval = setInterval(() => {
-          setUploadProgress(prev => {
-            const currentProgress = prev[fileObj.id] || 0;
-            if (currentProgress < 90) {
-              return { ...prev, [fileObj.id]: currentProgress + 10 };
-            } else {
-              clearInterval(progressInterval);
-              return prev;
-            }
-          });
-        }, 200);
-
         try {
-          // Aquí sería la llamada real al servicio
-          // const result = await fileService.uploadFile(fileObj.file, conversationId);
-          
-          // Simular subida exitosa después de 2 segundos
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          clearInterval(progressInterval);
+          // Subida real al backend usando chatService
+          const result = await require('@services/chatService').default.sendFile(conversationId, fileObj.file);
           setUploadProgress(prev => ({ ...prev, [fileObj.id]: 100 }));
-          
-          // Marcar como subido
-          setSelectedFiles(prev => 
-            prev.map(f => f.id === fileObj.id ? { ...f, uploaded: true } : f)
-          );
+          setSelectedFiles(prev => prev.map(f => f.id === fileObj.id ? { ...f, uploaded: true } : f));
 
-          // Notificar al componente padre
-          const fileData = {
-            id: fileObj.id,
-            name: fileObj.file.name,
-            size: fileObj.file.size,
-            type: fileObj.file.type,
-            url: URL.createObjectURL(fileObj.file), // En producción sería la URL del servidor
-            preview: fileObj.preview
-          };
-          
-          onFileUploaded(fileData);
+          // Notificar al componente padre con la respuesta real del backend
+          if (result && result.data) {
+            onFileUploaded(result.data);
+          } else {
+            setError('No se recibió respuesta válida del servidor.');
+          }
         } catch (uploadError) {
-          clearInterval(progressInterval);
           setError(`Error subiendo ${fileObj.file.name}: ${uploadError.message}`);
         }
       }

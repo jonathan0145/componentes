@@ -1,3 +1,12 @@
+// Utilidad para obtener la URL absoluta del archivo
+function getAbsoluteFileUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Reemplazar cualquier /api/v1/uploads por /uploads
+  let cleanUrl = url.replace(/\/api\/v1\/uploads/g, '/uploads');
+  const base = process.env.REACT_APP_API_URL || 'http://localhost:3000/';
+  return cleanUrl.startsWith('/') ? base.replace(/\/$/, '') + cleanUrl : base.replace(/\/$/, '') + '/' + cleanUrl;
+}
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Form, InputGroup, Badge, Dropdown } from 'react-bootstrap';
 import { FaPaperPlane, FaPaperclip, FaEllipsisV, FaCheck, FaCheckDouble, FaDownload, FaUserTie, FaStar, FaCertificate, FaDollarSign, FaCalendarAlt } from 'react-icons/fa';
@@ -142,15 +151,12 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
   };
 
   const handleFileUploaded = (fileData) => {
-    if (conversation?.id && isConnected) {
-      // Enviar mensaje de archivo a través de Socket.io
-      socketService.sendMessage(conversation.id, {
-        type: 'file',
-        file: fileData,
-        conversationId: conversation.id
-      });
-    } else {
-      toast.error('No se pudo enviar el archivo. Conexión no disponible.');
+    // Cuando el archivo se sube correctamente, refrescar mensajes y mostrar notificación
+    toast.success('Archivo enviado correctamente');
+    if (conversation?.id) {
+      // Refrescar mensajes para mostrar el archivo
+      const { fetchMessages } = require('@store/slices/chatSlice');
+      dispatch(fetchMessages({ conversationId: conversation.id }));
     }
     setShowFileModal(false);
   };
@@ -531,12 +537,12 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
                     {msg.type === 'file' ? (
                       // Renderizar archivo
                       <div>
-                        {msg.file.type?.startsWith('image/') ? (
+                        {msg.file.type && msg.file.type.startsWith('image/') ? (
                           // Imagen con preview y descarga
                           <div className="mb-2">
                             <div className="position-relative">
                               <img 
-                                src={msg.file.url || msg.file.preview} 
+                                src={msg.file.url ? getAbsoluteFileUrl(msg.file.url) : msg.file.preview} 
                                 alt={msg.file.name}
                                 className="rounded cursor-pointer"
                                 style={{ 
@@ -547,7 +553,7 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
                                 }}
                                 onClick={() => {
                                   if (msg.file.url) {
-                                    window.open(msg.file.url, '_blank');
+                                    window.open(getAbsoluteFileUrl(msg.file.url), '_blank');
                                   }
                                 }}
                               />
@@ -560,7 +566,7 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
                                   e.stopPropagation();
                                   if (msg.file.url) {
                                     const link = document.createElement('a');
-                                    link.href = msg.file.url;
+                                    link.href = getAbsoluteFileUrl(msg.file.url);
                                     link.download = msg.file.name;
                                     document.body.appendChild(link);
                                     link.click();
@@ -591,6 +597,7 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
                                    fontSize: '1.2em'
                                  }}>
                               {fileService.getFileIcon(msg.file.type)}
+
                             </div>
                             <div className="flex-grow-1 me-2">
                               <div className={`fw-bold ${isCurrentUser ? 'text-white' : 'text-dark'}`} 
@@ -609,7 +616,7 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
                               onClick={() => {
                                 if (msg.file.url) {
                                   const link = document.createElement('a');
-                                  link.href = msg.file.url;
+                                  link.href = getAbsoluteFileUrl(msg.file.url);
                                   link.download = msg.file.name;
                                   document.body.appendChild(link);
                                   link.click();

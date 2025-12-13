@@ -24,9 +24,36 @@ exports.getConversationMessages = async (req, res) => {
         { model: User, as: 'sender', attributes: ['id', 'name', 'avatar'] }
       ]
     });
+    // Mapear mensajes con archivo
+    const mappedMessages = messages.map(msg => {
+      const plain = msg.toJSON();
+      if (plain.fileUrl) {
+        // Extraer nombre y tipo del archivo
+        const url = plain.fileUrl;
+        const name = url.split('/').pop();
+        // Intentar inferir el tipo por extensión
+        let type = '';
+        if (name) {
+          const ext = name.split('.').pop().toLowerCase();
+          if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) type = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+          else if (ext === 'pdf') type = 'application/pdf';
+          else if (["doc","docx"].includes(ext)) type = 'application/msword';
+          else if (["xls","xlsx"].includes(ext)) type = 'application/vnd.ms-excel';
+          else if (ext === 'txt') type = 'text/plain';
+        }
+        plain.file = {
+          url,
+          name,
+          type,
+          size: null // Si quieres, puedes guardar el tamaño en la BD y retornarlo aquí
+        };
+        plain.type = 'file';
+      }
+      return plain;
+    });
     res.json({
       success: true,
-      data: messages,
+      data: mappedMessages,
       message: 'Mensajes obtenidos correctamente',
       timestamp: new Date().toISOString()
     });

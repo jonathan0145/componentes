@@ -120,6 +120,7 @@ class FileService {
 
   // Obtener icono según tipo de archivo
   getFileIcon(fileType) {
+    if (!fileType || typeof fileType !== 'string') return '📎';
     if (fileType.startsWith('image/')) return '🖼️';
     if (fileType === 'application/pdf') return '📄';
     if (fileType.includes('word')) return '📝';
