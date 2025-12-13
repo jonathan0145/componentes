@@ -3,10 +3,21 @@ const { Appointment } = require('../models');
 // Confirmar cita
 exports.confirmAppointment = async (req, res) => {
   try {
+    const { Property } = require('../models');
     const appointment = await Appointment.findByPk(req.params.id);
     if (!appointment) return res.status(404).json({ error: 'Cita no encontrada' });
     if (appointment.status === 'confirmed') {
       return res.status(400).json({ error: 'La cita ya está confirmada' });
+    }
+    // Solo el usuario que NO creó la cita puede confirmar
+    const userId = req.user?.id;
+    const property = await Property.findByPk(appointment.propertyId);
+    if (!property) return res.status(404).json({ error: 'Propiedad no encontrada' });
+    if (userId === appointment.userId) {
+      return res.status(403).json({ error: 'No puedes confirmar tu propia cita. Solo el otro participante puede hacerlo.' });
+    }
+    if (userId !== property.sellerId && userId !== appointment.userId) {
+      return res.status(403).json({ error: 'No tienes permisos para confirmar esta cita.' });
     }
     await appointment.update({
       status: 'confirmed',
@@ -21,10 +32,21 @@ exports.confirmAppointment = async (req, res) => {
 // Completar cita
 exports.completeAppointment = async (req, res) => {
   try {
+    const { Property } = require('../models');
     const appointment = await Appointment.findByPk(req.params.id);
     if (!appointment) return res.status(404).json({ error: 'Cita no encontrada' });
     if (appointment.status === 'completed') {
       return res.status(400).json({ error: 'La cita ya está completada' });
+    }
+    // Solo el usuario que NO creó la cita puede completar
+    const userId = req.user?.id;
+    const property = await Property.findByPk(appointment.propertyId);
+    if (!property) return res.status(404).json({ error: 'Propiedad no encontrada' });
+    if (userId === appointment.userId) {
+      return res.status(403).json({ error: 'No puedes marcar como completada tu propia cita. Solo el otro participante puede hacerlo.' });
+    }
+    if (userId !== property.sellerId && userId !== appointment.userId) {
+      return res.status(403).json({ error: 'No tienes permisos para completar esta cita.' });
     }
     await appointment.update({
       status: 'completed',

@@ -74,17 +74,25 @@ const { Appointment } = require('../models');
 exports.getAllAppointments = async (req, res) => {
   try {
     const { Property, User, Profile } = require('../models');
-    // Obtener el id del usuario autenticado (vendedor)
-    const sellerId = req.user?.id;
-    if (!sellerId) {
+    const userId = req.user?.id;
+    if (!userId) {
+      console.error('[APPOINTMENTS] No autenticado');
       return res.status(401).json({ success: false, error: { message: 'No autenticado' } });
     }
+    console.log('[APPOINTMENTS] Buscando citas para userId:', userId);
+    const { Op } = require('sequelize');
+    const where = {
+      [Op.or]: [
+        { userId },
+        { '$property.sellerId$': userId }
+      ]
+    };
+    console.log('[APPOINTMENTS] WHERE:', where);
     const appointments = await Appointment.findAll({
       include: [
         {
           model: Property,
           as: 'property',
-          where: { sellerId },
           include: [
             { model: User, as: 'seller' }
           ]
@@ -94,23 +102,13 @@ exports.getAllAppointments = async (req, res) => {
           as: 'user',
           include: [{ model: Profile, as: 'profile' }]
         }
-      ]
+      ],
+      where
     });
-    if (appointments.length > 0) {
-      console.log('Primera cita:', JSON.stringify(appointments[0], null, 2));
-      if (appointments[0].User) {
-        console.log('Usuario:', JSON.stringify(appointments[0].User, null, 2));
-        if (appointments[0].User.profile) {
-          console.log('Perfil:', JSON.stringify(appointments[0].User.profile, null, 2));
-        } else {
-          console.log('No hay perfil en appointments[0].User');
-        }
-      } else {
-        console.log('No hay User en appointments[0]');
-      }
-    }
+    console.log('[APPOINTMENTS] Resultados:', appointments.length);
     res.json(appointments);
   } catch (error) {
+    console.error('[APPOINTMENTS] ERROR:', error);
     res.status(500).json({
       success: false,
       error: {
