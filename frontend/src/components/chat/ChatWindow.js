@@ -31,11 +31,21 @@ const ChatWindow = ({ conversation, onToggleInfo, showInfoButton }) => {
   // Usar solo mensajes reales del store
   const messages = messagesFromStore || [];
 
+  // Log para depuración de conversación y mensajes
+  useEffect(() => {
+    console.log('[ChatWindow] Conversación seleccionada:', conversation);
+  }, [conversation]);
+
+  useEffect(() => {
+    console.log('[ChatWindow] Mensajes cargados para conversación', conversation?.id, messages);
+  }, [messages, conversation?.id]);
+
   // Cargar mensajes reales del backend al cambiar la conversación
   useEffect(() => {
     if (conversation?.id) {
       // Importación dinámica para evitar problemas de dependencias circulares
       const { fetchMessages } = require('@store/slices/chatSlice');
+      console.log('[ChatWindow] Disparando fetchMessages para conversación', conversation.id);
       dispatch(fetchMessages({ conversationId: conversation.id }));
     }
   }, [conversation?.id, dispatch]);

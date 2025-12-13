@@ -32,8 +32,10 @@ export const fetchMessages = createAsyncThunk(
   async ({ conversationId, params = {} }, { rejectWithValue }) => {
     try {
       const response = await chatService.getMessages(conversationId, params);
+      console.log('[fetchMessages] Respuesta de la API:', response);
       return response.data;
     } catch (error) {
+      console.error('[fetchMessages] Error:', error);
       return rejectWithValue(error.response?.data?.error?.message || 'Error al cargar mensajes');
     }
   }
@@ -240,18 +242,20 @@ const chatSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.messagesLoading = false;
-        const { messages, pagination, conversationId } = action.payload;
+        console.log('[chatSlice] fetchMessages.fulfilled payload:', action.payload);
+        // El backend retorna { success, data, message, timestamp }
+        // data = array de mensajes, no viene como 'messages'
+        const conversationId = action.meta?.arg?.conversationId;
+        let messages = action.payload?.data || [];
+        if (Array.isArray(messages) && conversationId) {
+          messages = messages.map(msg => ({ ...msg, conversationId }));
+        }
         const convId = conversationId || (messages && messages[0]?.conversationId) || (messages && messages[0]?.chatId);
         if (convId) {
-          if (pagination?.nextCursor && state.messages[convId]) {
-            // Paginación - agregar mensajes al inicio
-            state.messages[convId] = [...messages, ...state.messages[convId]];
-          } else {
-            // Primera carga
-            state.messages[convId] = messages || [];
-          }
+          state.messages[convId] = messages || [];
         }
-        state.pagination = pagination || { hasMore: false, nextCursor: null };
+        // No hay paginación en el payload actual
+        state.pagination = { hasMore: false, nextCursor: null };
       })
       .addCase(fetchMessages.rejected, (state, action) => {
         state.messagesLoading = false;
